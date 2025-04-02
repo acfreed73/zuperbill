@@ -11,14 +11,15 @@ interface Invoice {
 
 export default function InvoiceList({ customerId }: { customerId?: number }) {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "unpaid">("all");
 
     const fetchInvoices = async () => {
         try {
-            const url = customerId
-                ? `http://192.168.1.187:8000/invoices/?customer_id=${customerId}`
-                : `http://192.168.1.187:8000/invoices/`;
+            const params = new URLSearchParams();
+            if (customerId) params.append("customer_id", customerId.toString());
+            if (statusFilter !== "all") params.append("status", statusFilter);
 
-            const response = await fetch(url);
+            const response = await fetch(`http://192.168.1.187:8000/invoices/?${params.toString()}`);
             const data = await response.json();
             setInvoices(data);
         } catch (err) {
@@ -28,7 +29,7 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
 
     useEffect(() => {
         fetchInvoices();
-    }, [customerId]);
+    }, [customerId, statusFilter]);
 
     const handleDelete = async (id: number) => {
         if (!confirm("Are you sure you want to delete this invoice?")) return;
@@ -46,18 +47,21 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
 
     return (
         <div className="mt-4">
-            <h2 className="text-xl font-semibold mb-2">Invoices</h2>
-
-            {customerId && (
-                <div className="mb-2">
-                    <Link
-                        to={`/create-invoice/${customerId}`}
-                        className="inline-block bg-blue-600 text-white px-3 py-1 rounded"
-                    >
-                        + Add Invoice
-                    </Link>
+            <div className="flex justify-between items-center mb-2">
+                <h2 className="text-xl font-semibold">Invoices</h2>
+                <div className="space-x-2">
+                    {["all", "unpaid", "paid"].map((s) => (
+                        <button
+                            key={s}
+                            onClick={() => setStatusFilter(s as "all" | "unpaid" | "paid")}
+                            className={`px-3 py-1 text-sm rounded ${statusFilter === s ? "bg-blue-600 text-white" : "bg-gray-200"
+                                }`}
+                        >
+                            {s[0].toUpperCase() + s.slice(1)}
+                        </button>
+                    ))}
                 </div>
-            )}
+            </div>
 
             {invoices.length === 0 ? (
                 <p className="p-4">No invoices yet.</p>
@@ -73,14 +77,22 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {invoices.map(inv => (
-                            <tr key={inv.id} className={`border-t ${inv.status === 'paid' ? 'bg-green-100' : ''}`}>
+                        {invoices.map((inv) => (
+                            <tr key={inv.id} className={`border-t ${inv.status === "paid" ? "bg-green-100" : ""}`}>
                                 <td className="p-2">{inv.invoice_number}</td>
-                                <td className="p-2">{inv.date}</td>
+                                <td className="p-2">
+                                    {new Date(inv.date).toLocaleDateString("en-US", {
+                                        year: "numeric",
+                                        month: "numeric",
+                                        day: "numeric",
+                                    })}
+                                </td>
                                 <td className="p-2">{inv.status}</td>
                                 <td className="p-2">${inv.final_total.toFixed(2)}</td>
                                 <td className="p-2 space-x-2">
-                                    <Link to={`/edit-invoice/${inv.id}`} className="text-blue-600">Edit</Link>
+                                    <Link to={`/edit-invoice/${inv.id}`} className="text-blue-600">
+                                        Edit
+                                    </Link>
                                     <button
                                         onClick={() => handleDelete(inv.id)}
                                         className="text-red-600"

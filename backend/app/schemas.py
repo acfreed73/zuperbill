@@ -46,8 +46,11 @@ class InvoiceCreate(InvoiceBase):
 # Read/Response
 class CustomerOut(CustomerBase):
     id: int
+    total_due: Optional[float] = 0.0  # ⬅️ Add this
     class Config:
-        from_attributes = True  # Updated for Pydantic v2
+        from_attributes = True
+class CustomerWithUnpaid(CustomerOut):
+    total_unpaid: float = 0.0
 
 class InvoiceOut(InvoiceBase):
     id: int

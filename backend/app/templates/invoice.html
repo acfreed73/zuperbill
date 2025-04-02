@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Invoice #{{ invoice.id }}</title>
+    <title>Invoice #{{ invoice.invoice_number }}</title>
     <style>
         body {
             font-family: sans-serif;
@@ -13,7 +13,7 @@
         }
 
         .header {
-            font-size: 24px;
+            font-size: 18px;
             font-weight: bold;
         }
 
@@ -86,7 +86,7 @@
         <div class="paid-date">{{ invoice.paid_at.strftime('%m-%d-%Y') }}</div>
     </div>
     {% endif %}
-    <div class="header">Invoice #{{ invoice.id }}</div>
+    <div class="header">{{ invoice.invoice_number }}</div>
     <div>Date: {{ invoice.date.strftime('%Y-%m-%d') }}</div>
     <div>Status: {{ invoice.status }}</div>
     <div>Payment Type: {{ invoice.payment_type or 'N/A' }}</div>

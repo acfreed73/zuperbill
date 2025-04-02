@@ -116,33 +116,42 @@ def download_invoice_pdf(invoice_id: int, db: Session = Depends(get_db)):
         "Content-Disposition": f"inline; filename=invoice_{invoice_id}.pdf"
     })
 @router.put("/{invoice_id}", response_model=schemas.InvoiceOut)
-def replace_invoice(invoice_id: int, invoice_data: schemas.InvoiceCreate, db: Session = Depends(get_db)):
+def replace_invoice(invoice_id: int, updated_invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
-    # Clear existing line items
-    db.query(models.LineItem).filter(models.LineItem.invoice_id == invoice_id).delete()
+    # Update basic fields
+    invoice.customer_id = updated_invoice.customer_id
+    invoice.status = updated_invoice.status or "unpaid"
+    invoice.due_date = updated_invoice.due_date
+    invoice.notes = updated_invoice.notes
+    invoice.payment_type = updated_invoice.payment_type
+    invoice.discount = updated_invoice.discount or 0.0
+    invoice.tax = updated_invoice.tax or 0.0
 
     # Recalculate totals
-    subtotal = sum(item.quantity * item.unit_price for item in invoice_data.items)
-    discount = invoice_data.discount or 0.0
-    tax = invoice_data.tax or 0.0
-    final_total = (subtotal - discount) * (1 + tax / 100)
-
-    for field, value in invoice_data.dict(exclude={"items"}).items():
-        setattr(invoice, field, value)
+    subtotal = sum(item.quantity * item.unit_price for item in updated_invoice.items)
     invoice.total = subtotal
-    invoice.final_total = round(final_total, 2)
+    invoice.final_total = round((subtotal - invoice.discount) * (1 + invoice.tax / 100), 2)
 
-    db.commit()
+    # Handle paid_at logic
+    if invoice.status == "paid" and not invoice.paid_at:
+        from datetime import datetime
+        invoice.paid_at = datetime.utcnow()
+    elif invoice.status != "paid":
+        invoice.paid_at = None
 
-    for item in invoice_data.items:
-        db.add(models.LineItem(invoice_id=invoice.id, **item.dict()))
+    # Replace all line items
+    db.query(models.LineItem).filter(models.LineItem.invoice_id == invoice_id).delete()
+    for item in updated_invoice.items:
+        db_item = models.LineItem(invoice_id=invoice_id, **item.dict())
+        db.add(db_item)
 
     db.commit()
     db.refresh(invoice)
     return invoice
+
 
 
 @router.delete("/{invoice_id}", status_code=status.HTTP_204_NO_CONTENT)
