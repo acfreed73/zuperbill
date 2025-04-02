@@ -1,0 +1,28 @@
+---
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: ./start.sh
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://zuperuser:zuperpass@db:5432/zuperbill
+
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: zuperuser
+      POSTGRES_PASSWORD: zuperpass
+      POSTGRES_DB: zuperbill
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

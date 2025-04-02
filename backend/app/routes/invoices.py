@@ -1,0 +1,155 @@
+from datetime import datetime, date
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import StreamingResponse
+from app.pdf import generate_invoice_pdf
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+from app import models, schemas
+from app.database import get_db
+
+import io
+router = APIRouter()
+
+@router.post("/", response_model=schemas.InvoiceOut)
+def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)):
+    customer = db.query(models.Customer).filter(models.Customer.id == invoice.customer_id).first()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+
+    # Calculate subtotal
+    subtotal = sum(item.quantity * item.unit_price for item in invoice.items)
+    discount = invoice.discount or 0.0
+    tax = invoice.tax or 0.0
+    final_total = (subtotal - discount) * (1 + tax / 100)
+
+    # Generate invoice number like INV-20250401-001
+    today = date.today()
+    today_str = today.strftime("%Y%m%d")
+
+    daily_count = db.query(func.count(models.Invoice.id)).filter(
+        func.date(models.Invoice.date) == today
+    ).scalar() or 0
+
+    invoice_number = f"INV-{today_str}-{str(daily_count + 1).zfill(3)}"
+
+    db_invoice = models.Invoice(
+        customer_id=invoice.customer_id,
+        total=subtotal,
+        discount=discount,
+        tax=tax,
+        final_total=round(final_total, 2),
+        status=invoice.status,
+        due_date=invoice.due_date,
+        notes=invoice.notes,
+        payment_type=invoice.payment_type,
+        date=today,
+        invoice_number=invoice_number  # Make sure your model and schema support this field
+    )
+
+    db.add(db_invoice)
+    db.commit()
+    db.refresh(db_invoice)
+
+    for item in invoice.items:
+        db_item = models.LineItem(invoice_id=db_invoice.id, **item.dict())
+        db.add(db_item)
+
+    db.commit()
+    db.refresh(db_invoice)
+    return db_invoice
+@router.get("/", response_model=list[schemas.InvoiceOut])
+def list_invoices(
+    status: Optional[str] = Query(None),
+    customer_id: Optional[int] = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.Invoice)
+
+    if status:
+        query = query.filter(models.Invoice.status == status)
+
+    if customer_id:
+        query = query.filter(models.Invoice.customer_id == customer_id)
+
+    return query.offset(offset).limit(limit).all()
+
+
+@router.get("/{invoice_id}", response_model=schemas.InvoiceOut)
+def get_invoice(invoice_id: int, db: Session = Depends(get_db)):
+    invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    return invoice
+@router.patch("/{invoice_id}", response_model=schemas.InvoiceOut)
+def update_invoice(invoice_id: int, invoice_update: schemas.InvoiceUpdate, db: Session = Depends(get_db)):
+    invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    updates = invoice_update.dict(exclude_unset=True)
+
+    # Auto-set paid_at if status changed to "paid"
+    if "status" in updates and updates["status"] == "paid" and invoice.paid_at is None:
+        invoice.paid_at = datetime.utcnow()
+
+    if "status" in updates and updates["status"] != "paid":
+        invoice.paid_at = None
+
+    for field, value in updates.items():
+        setattr(invoice, field, value)
+
+    db.commit()
+    db.refresh(invoice)
+    return invoice
+@router.get("/{invoice_id}/pdf")
+def download_invoice_pdf(invoice_id: int, db: Session = Depends(get_db)):
+    invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    invoice_data = schemas.InvoiceOut.from_orm(invoice).dict()
+    pdf_bytes = generate_invoice_pdf(invoice_data)
+    return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={
+        "Content-Disposition": f"inline; filename=invoice_{invoice_id}.pdf"
+    })
+@router.put("/{invoice_id}", response_model=schemas.InvoiceOut)
+def replace_invoice(invoice_id: int, invoice_data: schemas.InvoiceCreate, db: Session = Depends(get_db)):
+    invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    # Clear existing line items
+    db.query(models.LineItem).filter(models.LineItem.invoice_id == invoice_id).delete()
+
+    # Recalculate totals
+    subtotal = sum(item.quantity * item.unit_price for item in invoice_data.items)
+    discount = invoice_data.discount or 0.0
+    tax = invoice_data.tax or 0.0
+    final_total = (subtotal - discount) * (1 + tax / 100)
+
+    for field, value in invoice_data.dict(exclude={"items"}).items():
+        setattr(invoice, field, value)
+    invoice.total = subtotal
+    invoice.final_total = round(final_total, 2)
+
+    db.commit()
+
+    for item in invoice_data.items:
+        db.add(models.LineItem(invoice_id=invoice.id, **item.dict()))
+
+    db.commit()
+    db.refresh(invoice)
+    return invoice
+
+
+@router.delete("/{invoice_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_invoice(invoice_id: int, db: Session = Depends(get_db)):
+    invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    db.delete(invoice)
+    db.commit()
+    return None

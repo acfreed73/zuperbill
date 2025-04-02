@@ -1,0 +1,22 @@
+
+
+POST http://localhost:8000//invoices
+Content-Type: application/json
+
+{
+  "customer_id": 1,
+  "total": 750.0,
+  "items": [
+    {
+      "description": "Smart camera install",
+      "quantity": 1,
+      "unit_price": 500.0
+    },
+    {
+      "description": "Monthly service",
+      "quantity": 1,
+      "unit_price": 250.0
+    }
+  ]
+}
+

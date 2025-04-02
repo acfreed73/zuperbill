@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice #{{ invoice.id }}</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            max-width: 800px;
+            margin: auto;
+        }
+
+        .header {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .section {
+            margin-top: 1.5em;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1em;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 0.5em;
+            text-align: left;
+        }
+        .paid-stamp {
+            position: fixed;
+            top: 15%;
+            left: 25%;
+            width: 50%;
+            height: 40%;
+            text-align: center;
+            color: red;
+            font-size: 26px;
+            font-weight: bold;
+            background-image: url("paid-stamp.png");
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            opacity: 0.3;
+            transform: rotate(-15deg);
+            z-index: 999;
+        }
+        .paid-date {
+            position: absolute;
+            bottom: 25%;
+            left: 60%;
+            transform: translateX(-50%) rotate(-20deg);
+            font-size: 26px;
+            font-weight: bold;
+            color: red;
+            opacity: 0.9;
+        }
+
+
+
+
+    </style>
+</head>
+
+<body>
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+        <div>
+            <img src="zuper_blue.png" alt="ZH" style="height: 80px;" />
+        </div>
+        <div style="text-align: right;">
+            <strong>Zuper Handy Services</strong><br>
+            3907 Cleveland St.<br>
+            Skokie IL. 60076<br>
+            (847) 271-1468<br>
+            billing@zuperhandy.com
+        </div>
+    </div>
+    {% if invoice.paid_at %}
+    <div class="paid-stamp">
+        <div class="paid-date">{{ invoice.paid_at.strftime('%m-%d-%Y') }}</div>
+    </div>
+    {% endif %}
+    <div class="header">Invoice #{{ invoice.id }}</div>
+    <div>Date: {{ invoice.date.strftime('%Y-%m-%d') }}</div>
+    <div>Status: {{ invoice.status }}</div>
+    <div>Payment Type: {{ invoice.payment_type or 'N/A' }}</div>
+
+    <div class="section">
+        <strong>Customer:</strong> <br>
+        {{ invoice.customer.name }}<br>
+        {{ invoice.customer.street }}<br>
+        {{ invoice.customer.city }}, {{ invoice.customer.state }} {{ invoice.customer.zip }}<br>
+        {{ invoice.customer.phone or '' }}<br>
+        {{ invoice.customer.email }}<br>
+    </div>
+
+    <div class="section">
+        <strong>Items:</strong>
+        <table>
+            <tr>
+                <th>Description</th>
+                <th>Qty</th>
+                <th>Unit Price</th>
+                <th>Total</th>
+            </tr>
+            {% for item in invoice["items"] %}
+            <tr>
+                <td>{{ item.description }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>${{ "%.2f"|format(item.unit_price) }}</td>
+                <td>${{ "%.2f"|format(item.quantity * item.unit_price) }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+
+    <div class="section">
+        Subtotal: ${{ "%.2f"|format(invoice.total) }}<br>
+        Discount: -${{ "%.2f"|format(invoice.discount or 0) }}<br>
+        Tax: {{ "%.2f"|format(invoice.tax or 0) }}%<br>
+        <strong>Total Due: ${{ "%.2f"|format(invoice.final_total or 0) }}</strong>
+    </div>
+
+    {% if invoice.notes %}
+    <div class="section">
+        <strong>Notes:</strong><br>
+        {{ invoice.notes }}
+    </div>
+    {% endif %}
+    <div class="section" style="margin-top: 3em;">
+    <strong>Customer Signature:</strong><br>
+    {% if invoice.signature_path %}
+    <img src="{{ invoice.signature_path }}" alt="Customer Signature" style="height: 80px; margin-top: 10px;" />
+    {% else %}
+    <div style="height: 80px; border-bottom: 1px solid #000; width: 300px;"></div>
+    <span style="font-size: 12px;">(Sign here)</span>
+    {% endif %}
+    </div>
+</body>
+
+</html>

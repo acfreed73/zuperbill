@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+
+# Environment
+.env
+.venv/
+venv/
+*.env
+
+# Alembic
+backend/alembic/versions/*.pyc
+backend/alembic/versions/__pycache__/
+
+# VS Code
+.vscode/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+frontend/.DS_Store
+
+# Docker
+*.pid
+*.log
+*.sock
+
+# OS
+.DS_Store
+Thumbs.db

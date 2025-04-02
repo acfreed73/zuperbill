@@ -1,0 +1,14 @@
+alembic
+fastapi
+uvicorn[standard]
+psycopg2-binary
+pydantic
+sqlalchemy
+aiofiles
+python-multipart
+Jinja2
+email-validator
+Jinja2
+WeasyPrint
+
+
