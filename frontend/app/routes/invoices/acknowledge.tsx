@@ -1,7 +1,9 @@
+// app/routes/invoices/acknowledge.tsx
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import SignatureCanvas from "react-signature-canvas";
 import InvoicePreview from "../../components/InvoicePreview";
+import PaymentModal from "../../components/PaymentModal";
 
 export default function AcknowledgeInvoice() {
     const { invoiceId } = useParams<{ invoiceId: string }>();
@@ -10,7 +12,31 @@ export default function AcknowledgeInvoice() {
     const [agreed, setAgreed] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [signed, setSigned] = useState(false);
+    const [testimonial, setTestimonial] = useState("");
+    const [showModal, setShowModal] = useState(false);
+    const [selectedTheme, setSelectedTheme] = useState("");
+    const [showWarningModal, setShowWarningModal] = useState(false);
+    const [pendingSubmit, setPendingSubmit] = useState(false);
+    const [missingItems, setMissingItems] = useState<string[]>([]);
+    const [forceSubmit, setForceSubmit] = useState(false);
 
+
+    // Add after other useState hooks
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentStatus, setPaymentStatus] = useState(invoice?.status || "unpaid");
+    const [paymentType, setPaymentType] = useState(invoice?.payment_type || "");
+    const [paymentNotes, setPaymentNotes] = useState(invoice?.notes || "");
+
+    const navigate = useNavigate();
+    
+    useEffect(() => {
+        if (!selectedTheme) return;
+        fetch(`http://192.168.1.187:8000/ai/generate-testimonial?theme=${selectedTheme}`)
+            .then(res => res.text())
+            .then(setTestimonial)
+            .catch(console.error);
+    }, [selectedTheme]);
+    
     useEffect(() => {
         fetch(`http://192.168.1.187:8000/invoices/${invoiceId}`)
             .then(res => res.json())
@@ -18,28 +44,35 @@ export default function AcknowledgeInvoice() {
             .catch(err => console.error("Failed to load invoice", err));
     }, [invoiceId]);
 
+    
     const handleSubmit = async () => {
-        if (!agreed || sigRef.current?.isEmpty()) {
-            alert("Please agree to the terms and sign before submitting.");
+        const missing: string[] = [];
+        if (!agreed) missing.push("terms");
+        if (sigRef.current?.isEmpty()) missing.push("signature");
+
+        if (missing.length > 0 && !forceSubmit) {
+            setMissingItems(missing);
+            setShowWarningModal(true);
             return;
         }
 
         setSubmitting(true);
         const signatureData = sigRef.current?.toDataURL("image/png");
+
         const payload = {
             signature_base64: signatureData,
-            accepted: true,
-            signed_at: new Date().toISOString()
+            accepted: agreed,
+            signed_at: new Date().toISOString(),
+            testimonial,
         };
 
         const res = await fetch(`http://192.168.1.187:8000/invoices/${invoiceId}/acknowledge`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payload),
         });
 
         if (res.ok) {
-            alert("Invoice acknowledged. Receipt emailed.");
             window.location.href = "/customers";
         } else {
             alert("Failed to submit. Try again.");
@@ -48,14 +81,44 @@ export default function AcknowledgeInvoice() {
         setSubmitting(false);
     };
 
+
     const handleClear = () => {
         sigRef.current?.clear();
         setSigned(false);
     };
 
+    const handleUpdatePayment = async (updates: any) => {
+        const res = await fetch(`http://192.168.1.187:8000/invoices/${invoiceId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updates)
+        });
+
+        if (res.ok) {
+            const updated = await res.json();
+            setInvoice(updated);
+            setShowModal(false);
+        } else {
+            alert("Failed to update payment info.");
+        }
+    };
+
+    const handleEmail = async () => {
+        const res = await fetch(`http://192.168.1.187:8000/invoices/${invoiceId}/email`, {
+            method: "POST"
+        });
+
+        if (res.ok) {
+            alert("Invoice emailed successfully.");
+            navigate("/customers");
+        } else {
+            alert("Failed to send invoice.");
+        }
+    };
+
     if (!invoice) return <p className="p-4">Loading...</p>;
 
-    const signatureData = signed ? sigRef.current?.toDataURL("image/png") : undefined;
+    const signatureData = signed ? sigRef.current?.toDataURL("image/png") : invoice.signature_base64;
 
     return (
         <div className="p-4 max-w-5xl mx-auto">
@@ -64,67 +127,15 @@ export default function AcknowledgeInvoice() {
                 signatureDataUrl={signatureData}
                 signedAt={new Date().toLocaleString()}
                 accepted={agreed}
+                testimonial={testimonial}
             />
 
+            {/* Terms + Testimonial UI */}
             <div className="mt-6">
                 <label className="block font-semibold mb-2">Terms & Conditions</label>
-
-                <div className="border p-3 text-xs h-48 overflow-y-scroll bg-gray-50 rounded leading-snug space-y-2">
-                    <h3 className="font-semibold text-sm">Terms and Conditions</h3>
-                    <p><strong>Last updated:</strong> March 31, 2025</p>
-
-                    <p><strong>1. Scope of Services</strong><br />
-                        The following services are offered by Zuper Handy, hereafter referred to as "Company":</p>
-                    <ul className="list-disc list-inside ml-4 space-y-1">
-                        <li>General Home Repairs: Patching holes, fixing trim, adjusting doors and hardware, light fixture swaps.</li>
-                        <li>Electrical: Replacing GFCI outlets, light switches, ceiling fans, doorbells (non-permitted work only).</li>
-                        <li>Plumbing: Faucet and fixture replacement, toilet installation, minor leak repairs (no water main or gas line work).</li>
-                        <li>Smart Tech: Doorbell cameras, smart switches, Wi-Fi devices, thermostat replacements, smart locks.</li>
-                        <li>Child Safety & Accessibility: Installing cabinet latches, baby gates, outlet covers, grab bars, bed rails.</li>
-                        <li>Assembly & Mounting: Furniture assembly, wall-mounting TVs, shelves, and art.</li>
-                        <li>Other Tasks: Additional tasks may be performed at the Company’s discretion and are subject to the same terms.</li>
-                    </ul>
-                    <p>Any work requiring licensed contracting, electrical permits, plumbing beyond fixture replacement, or structural alterations is outside the scope of this agreement.</p>
-
-                    <p><strong>2. Payment Terms</strong><br />
-                        Standard rate is $100/hour, with a 1-hour minimum per visit. Time is billed in full-hour increments. Payment is due upon completion unless agreed in advance. Accepted: Cash, Check, Zelle.<br />
-                        Returned checks incur a $35 fee. Late payments incur 1.5% monthly interest. Invoices unpaid after 14 days may be sent to collections.</p>
-
-                    <p><strong>3. Insurance</strong><br />
-                        The Company carries general liability insurance for damages caused by gross negligence. Does not cover damage from pre-existing issues, client-supplied materials, or hidden structural conditions.</p>
-
-                    <p><strong>4. Liability and Indemnification</strong><br />
-                        The Client indemnifies Zuper Handy from claims or damages arising from injuries not caused by our negligence, client-supplied materials, or existing site conditions. Liability is limited to the total value of services. No incidental/consequential damages awarded.</p>
-
-                    <p><strong>5. Workmanship Guarantee</strong><br />
-                        30-day labor warranty. Does not cover materials. Warranty void if work is altered or misused.</p>
-
-                    <p><strong>6. Appointment Policies</strong><br />
-                        Cancel at least 24 hours in advance. Late cancellations/no-shows may incur 1-hour charge. Time starts upon arrival.</p>
-
-                    <p><strong>7. Right to Refuse Service</strong><br />
-                        We may decline or cancel service if unsafe, inaccessible, or if client behavior is abusive.</p>
-
-                    <p><strong>8. Photo Documentation</strong><br />
-                        Before/after photos may be used for liability and marketing unless client opts out in writing.</p>
-
-                    <p><strong>9. Acts of God / Force Majeure</strong><br />
-                        Not liable for failure to perform due to natural disasters, outages, strikes, pandemics, or other uncontrollable events.</p>
-
-                    <p><strong>10. Termination of Contract</strong><br />
-                        Either party may terminate service at any time. Services to date must be paid. Prepaid work is prorated.</p>
-
-                    <p><strong>11. Dispute Resolution</strong><br />
-                        Disputes will first attempt resolution in good faith. If unresolved, disputes go to mediation or binding arbitration in Illinois.</p>
-
-                    <p><strong>12. Governing Law</strong><br />
-                        This Agreement is governed by Illinois state law.</p>
-
-                    <p><strong>13. Acceptance of Terms</strong><br />
-                        By requesting or confirming service, the Client accepts these terms whether via phone, email, text, or booking form.</p>
+                <div className="border p-2 text-sm h-32 overflow-y-scroll bg-gray-50 rounded">
+                    By signing below, you acknowledge the services were completed to your satisfaction and accept the terms outlined in the invoice. Payment is due as per terms specified.
                 </div>
-
-
                 <label className="block mt-2">
                     <input
                         type="checkbox"
@@ -135,7 +146,32 @@ export default function AcknowledgeInvoice() {
                     I agree to the terms and acknowledge work completion.
                 </label>
             </div>
-
+            <div className="mt-6">
+                <label className="block font-semibold mb-2">Testimonial Theme</label>
+                <div className="flex flex-wrap gap-4 text-sm mb-2">
+                    {["price", "timely", "cordial", "clean", "quality", "overall"].map((theme) => (
+                        <label key={theme} className="flex items-center space-x-1">
+                            <input
+                                type="radio"
+                                name="testimonialTheme"
+                                value={theme}
+                                checked={selectedTheme === theme}
+                                onChange={() => setSelectedTheme(theme)}
+                            />
+                            <span>{theme}</span>
+                        </label>
+                    ))}
+                </div>
+                <label className="block font-semibold mb-1">Testimonial</label>
+                <textarea
+                    rows={3}
+                    className="w-full border rounded p-2 text-sm"
+                    placeholder="Write your testimonial here or keep the suggested one..."
+                    value={testimonial}
+                    onChange={(e) => setTestimonial(e.target.value)}
+                />
+            </div>
+            {/* Signature pad */}
             <div className="mt-4">
                 <label className="block font-semibold mb-2">Signature</label>
                 <SignatureCanvas
@@ -147,13 +183,153 @@ export default function AcknowledgeInvoice() {
                 <button onClick={handleClear} className="text-sm mt-2 text-blue-600">Clear</button>
             </div>
 
-            <button
-                onClick={handleSubmit}
-                disabled={submitting}
-                className="mt-6 bg-blue-600 text-white px-6 py-2 rounded disabled:opacity-50"
-            >
-                {submitting ? "Submitting..." : "Submit Acknowledgment"}
-            </button>
+            {/* Buttons */}
+            <div className="mt-6 flex gap-4">
+                {!invoice.accepted && (
+                    <button
+                        onClick={handleSubmit}
+                        disabled={submitting}
+                        className="bg-blue-600 text-white px-6 py-2 rounded disabled:opacity-50"
+                    >
+                        {submitting ? "Submitting..." : "Email Invoice"}
+                    </button>
+                )}
+
+                {invoice.accepted && (
+                    <>
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="bg-yellow-500 text-white px-6 py-2 rounded"
+                        >
+                            Record Payment
+                        </button>
+
+                        <button
+                            onClick={handleEmail}
+                            className="bg-green-600 text-white px-6 py-2 rounded"
+                        >
+                            Email Invoice
+                        </button>
+                    </>
+                )}
+            </div>
+            {agreed && signatureData && (
+                <button
+                    onClick={() => setShowPaymentModal(true)}
+                    className="mt-4 bg-green-600 text-white px-6 py-2 rounded"
+                >
+                    Mark as Paid
+                </button>
+            )}
+
+            {showPaymentModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
+                        <h2 className="text-lg font-semibold mb-4">Mark Invoice as Paid</h2>
+
+                        <label className="block mb-2 font-medium">Status</label>
+                        <select
+                            className="border rounded w-full p-2 mb-4"
+                            value={paymentStatus}
+                            onChange={(e) => setPaymentStatus(e.target.value)}
+                        >
+                            <option value="unpaid">Unpaid</option>
+                            <option value="paid">Paid</option>
+                        </select>
+
+                        <label className="block mb-2 font-medium">Payment Type</label>
+                        <select
+                            className="border rounded w-full p-2 mb-4"
+                            value={paymentType}
+                            onChange={(e) => setPaymentType(e.target.value)}
+                        >
+                            <option value="">Select...</option>
+                            <option value="cash">Cash</option>
+                            <option value="check">Check</option>
+                            <option value="zelle">Zelle</option>
+                            <option value="credit_card">Credit Card</option>
+                        </select>
+
+                        <label className="block mb-2 font-medium">Notes (optional)</label>
+                        <textarea
+                            className="border rounded w-full p-2 mb-4"
+                            rows={3}
+                            value={paymentNotes}
+                            onChange={(e) => setPaymentNotes(e.target.value)}
+                        />
+
+                        <div className="flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowPaymentModal(false)}
+                                className="text-gray-600 hover:text-black"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="bg-blue-600 text-white px-4 py-2 rounded"
+                                onClick={async () => {
+                                    const res = await fetch(`http://192.168.1.187:8000/invoices/${invoiceId}`, {
+                                        method: "PATCH",
+                                        headers: { "Content-Type": "application/json" },
+                                        body: JSON.stringify({
+                                            status: paymentStatus,
+                                            payment_type: paymentType,
+                                            notes: paymentNotes,
+                                        }),
+                                    });
+                                    if (res.ok) {
+                                        const updated = await res.json();
+                                        setInvoice(updated);
+                                        setShowPaymentModal(false);
+                                    } else {
+                                        alert("Failed to update invoice.");
+                                    }
+                                }}
+                            >
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Modals */}
+            {showWarningModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
+                        <h2 className="text-lg font-semibold mb-2">Proceed without full acknowledgment?</h2>
+                        <p className="text-sm text-gray-700 mb-4">
+                            The following are missing: <strong>{missingItems.join(" and ")}</strong>.
+                            <br />Do you still want to email the invoice anyway?
+                        </p>
+                        <div className="flex justify-end gap-4">
+                            <button
+                                className="px-4 py-2 text-gray-600 hover:text-gray-900"
+                                onClick={() => setShowWarningModal(false)}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                                onClick={() => {
+                                    setShowWarningModal(false);
+                                    setForceSubmit(true);
+                                    handleSubmit();
+                                }}
+                            >
+                                Send Anyway
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showModal && (
+                <PaymentModal
+                    invoice={invoice}
+                    onClose={() => setShowModal(false)}
+                    onSubmit={handleUpdatePayment}
+                />
+            )}
         </div>
     );
 }

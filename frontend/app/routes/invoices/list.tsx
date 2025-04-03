@@ -91,7 +91,13 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
                                 <td className="p-2">${inv.final_total.toFixed(2)}</td>
                                 <td className="p-2 space-x-2">
                                     <Link to={`/edit-invoice/${inv.id}`} className="text-blue-600"> Edit </Link>
-                                    <Link to={`/invoices/${inv.id}/acknowledge`} className="text-green-600">Acknowledge</Link>
+                                    {inv.accepted ? (
+                                        <Link to={`/view-invoice/${inv.id}`}>
+                                            <button className="bg-gray-700 text-white px-3 py-1 rounded text-sm">View Invoice</button>
+                                        </Link>
+                                    ) : (
+                                        <Link to={`/invoices/${inv.id}/acknowledge`} className="text-green-600">Ack</Link>
+                                    )}
                                     <button
                                         onClick={() => handleDelete(inv.id)}
                                         className="text-red-600"

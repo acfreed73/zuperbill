@@ -36,6 +36,7 @@ class Invoice(Base):
     signed_at = Column(DateTime, nullable=True)
     accepted = Column(Boolean, default=False)
     signature_base64 = Column(Text, nullable=True)
+    testimonial = Column(Text, nullable=True)
 
     customer = relationship("Customer", back_populates="invoices")
     items = relationship("LineItem", back_populates="invoice")

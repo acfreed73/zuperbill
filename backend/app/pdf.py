@@ -1,3 +1,4 @@
+# backend/app/pdf.py
 from weasyprint import HTML
 from pathlib import Path
 
@@ -140,20 +141,43 @@ def generate_invoice_pdf_from_html(invoice_data: dict, signature_base64: str = "
             Tax: {invoice_data.get("tax", 0):.2f}%<br />
             <strong>Total Due: ${invoice_data["final_total"]:.2f}</strong>
         </div>
-
+        {f'''
+        <div class="section">
+            <strong>Notes:</strong><br />
+            <p>{invoice_data['notes']}</p>
+        </div>
+        ''' if invoice_data.get("notes") else ""}
         <div class="section">
             <strong>Customer Signature:</strong><br />
             {f'''
             <img src="{signature_base64}" style="height:80px;" /><br />
             <em>Signed and accepted on {signed_at}</em><br />
-            <span style="font-size: 11px; color: #555;">For full terms and conditions, visit <a href="https://zuperhandy.com/terms.html">zuperhandy.com/terms.html</a></span>
+            <span style="font-size: 11px; color: #555;">
+                By signing, you acknowledge work completion and accept our terms.
+                <br />
+                View terms: <a href="https://zuperhandy.com/terms.html">zuperhandy.com/terms.html</a>
+            </span>
             ''' if accepted and signature_base64 else '''
             <div style="height: 80px; border-bottom: 1px solid #000; width: 300px;"></div>
-            <span style="font-size: 12px;">(Sign here)</span>
-            '''}
+            <span style="font-size: 12px;">(Sign here)</span><br />
+            <span style="font-size: 11px; color: #555;">
+                By signing, you confirm the work was completed and accept our
+                <a href="https://zuperhandy.com/terms.html">Terms & Conditions</a>.
+            </span>
+        '''}
         </div>
-    </body>
-    </html>
-    """
+
+""" + (
+        f'''
+        <blockquote style="margin-top: 2em; font-style: italic; border-left: 4px solid #ccc; padding-left: 1em;">
+            {invoice_data['testimonial']}
+            <br />
+            &mdash; {invoice_data['customer']['name']}
+        </blockquote>
+        ''' if accepted and invoice_data.get("testimonial") else ""
+    ) + """
+</body>
+</html>
+"""
 
     return HTML(string=html, base_url=str(template_path)).write_pdf()

@@ -2,8 +2,9 @@ import os
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import customers, invoices, acknowledgment
+from app.routes import customers, invoices, acknowledgment, testimonials, line_items
 from fastapi.staticfiles import StaticFiles
+
 
 from app.db_init import create_db
 
@@ -18,11 +19,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(customers.router, prefix="/customers", tags=["Customers"])
 app.include_router(invoices.router, prefix="/invoices", tags=["Invoices"])
 app.include_router(acknowledgment.router)
+app.include_router(testimonials.router, prefix="/ai")
+app.include_router(line_items.router)
 
 
 # Only run create_db on actual Uvicorn worker process

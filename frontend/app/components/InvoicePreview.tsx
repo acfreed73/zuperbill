@@ -1,22 +1,29 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 interface Props {
     invoice: any;
     signatureDataUrl?: string;
     signedAt?: string;
     accepted?: boolean;
+    testimonial?: string;
 }
+
 
 export default function InvoicePreview({ invoice, signatureDataUrl, signedAt, accepted }: Props) {
     const paidDate = invoice.paid_at ? new Date(invoice.paid_at).toLocaleDateString() : null;
+    const [testimonial, setTestimonial] = useState(invoice.testimonial || "");
+
+    useEffect(() => {
+        setTestimonial(invoice.testimonial || "");
+    }, [invoice.testimonial]);
 
     return (
         <div className="relative bg-white shadow p-6 max-w-4xl mx-auto text-sm leading-relaxed">
-
             {/* PAID STAMP OVERLAY */}
             {paidDate && (
                 <>
-                    <div className="absolute top-1/4 left-1/4 w-1/2 h-1/2 opacity-30 z-0"
+                    <div
+                        className="absolute top-1/4 left-1/4 w-1/2 h-1/2 opacity-30 z-0"
                         style={{
                             backgroundImage: "url('/paid-stamp.png')",
                             backgroundSize: "contain",
@@ -25,13 +32,13 @@ export default function InvoicePreview({ invoice, signatureDataUrl, signedAt, ac
                             transform: "rotate(-15deg)"
                         }}
                     />
-                    <div className="absolute bottom-12/32 left-36/64 text-red-600 text-4xl font-bold z-10 transform -rotate-38 -translate-x-18/32 opacity-60">
+                    <div className="absolute top-[56%] left-[56%] text-red-600 text-3xl font-bold z-10 transform -rotate-[40deg] -translate-x-1/2 opacity-60">
                         {paidDate}
                     </div>
                 </>
             )}
 
-            {/* Header with Logo and Company Info */}
+            {/* Header */}
             <div className="flex justify-between items-start mb-4 relative z-10">
                 <img src="/zuper_blue.png" alt="ZH" className="h-16" />
                 <div className="text-right text-xs">
@@ -111,6 +118,13 @@ export default function InvoicePreview({ invoice, signatureDataUrl, signedAt, ac
                         <p className="text-xs text-gray-600">
                             (Customer acknowledged work completion and agreed to terms.)
                         </p>
+                        {testimonial && (
+                            <blockquote className="mt-6 border-l-4 border-gray-400 pl-4 italic text-sm text-gray-700">
+                                {testimonial}
+                                <br />
+                                <span className="text-xs text-right block mt-1">— {invoice.customer.name}</span>
+                            </blockquote>
+                        )}
                     </>
                 ) : (
                     <>

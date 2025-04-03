@@ -27,6 +27,7 @@ class InvoiceBase(BaseModel):
     tax: Optional[float] = 0.0
     payment_type: Optional[str] = None
     items: List[LineItemCreate]
+    testimonial: Optional[str] = None
 
 # Create
 class CustomerCreate(CustomerBase):
@@ -42,6 +43,7 @@ class LineItemOut(LineItemCreate):
         from_attributes = True
 class InvoiceCreate(InvoiceBase):
     items: List[LineItemCreate]
+    testimonial: Optional[str] = None
 
 # Read/Response
 class CustomerOut(CustomerBase):
@@ -62,6 +64,8 @@ class InvoiceOut(InvoiceBase):
     final_total: Optional[float] = None
     paid_at: Optional[datetime] = None
 
+    testimonial: Optional[str] = None
+
     class Config:
         from_attributes = True
 class InvoiceUpdate(BaseModel):
@@ -74,10 +78,14 @@ class InvoiceUpdate(BaseModel):
     tax: Optional[float] = None
     payment_type: Optional[str] = None
     paid_at: Optional[datetime] = None
+
+    testimonial: Optional[str] = None
 class InvoiceAcknowledgment(BaseModel):
     signed_at: Optional[datetime]
     accepted: Optional[bool]
     signature_base64: Optional[str]
+    testimonial: Optional[str] = None
+
 
     class Config:
         from_attributes = True

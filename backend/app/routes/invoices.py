@@ -4,7 +4,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from app.pdf import generate_invoice_pdf_from_html
-
+from app.utils.email import send_invoice_email
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app import models, schemas
@@ -46,8 +46,10 @@ def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
         notes=invoice.notes,
         payment_type=invoice.payment_type,
         date=today,
-        invoice_number=invoice_number  # Make sure your model and schema support this field
+        invoice_number=invoice_number,  # Make sure your model and schema support this field
+        testimonial=invoice.testimonial
     )
+    print(f"Invoice: {db_invoice}")
 
     db.add(db_invoice)
     db.commit()
@@ -106,20 +108,21 @@ def update_invoice(invoice_id: int, invoice_update: schemas.InvoiceUpdate, db: S
     db.commit()
     db.refresh(invoice)
     return invoice
-@router.get("/{invoice_id}/pdf")
-def download_invoice_pdf(invoice_id: int, db: Session = Depends(get_db)):
-    invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
-    if not invoice:
-        raise HTTPException(status_code=404, detail="Invoice not found")
+# @router.get("/{invoice_id}/pdf")
+# def download_invoice_pdf(invoice_id: int, db: Session = Depends(get_db)):
+#     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+#     if not invoice:
+#         raise HTTPException(status_code=404, detail="Invoice not found")
 
-    invoice_data = schemas.InvoiceOut.from_orm(invoice).dict()
-    pdf_bytes = generate_invoice_pdf(invoice_data)
-    return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={
-        "Content-Disposition": f"inline; filename=invoice_{invoice_id}.pdf"
-    })
+#     invoice_data = schemas.InvoiceOut.from_orm(invoice).dict()
+#     pdf_bytes = generate_invoice_pdf(invoice_data)
+#     return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={
+#         "Content-Disposition": f"inline; filename=invoice_{invoice_id}.pdf"
+#     })
 @router.put("/{invoice_id}", response_model=schemas.InvoiceOut)
 def replace_invoice(invoice_id: int, updated_invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+    print(f"Invoice: {invoice}")
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
@@ -131,6 +134,7 @@ def replace_invoice(invoice_id: int, updated_invoice: schemas.InvoiceCreate, db:
     invoice.payment_type = updated_invoice.payment_type
     invoice.discount = updated_invoice.discount or 0.0
     invoice.tax = updated_invoice.tax or 0.0
+    invoice.testimonial = updated_invoice.testimonial
 
     # Recalculate totals
     subtotal = sum(item.quantity * item.unit_price for item in updated_invoice.items)
@@ -164,3 +168,27 @@ def delete_invoice(invoice_id: int, db: Session = Depends(get_db)):
     db.delete(invoice)
     db.commit()
     return None
+@router.post("/{invoice_id}/resend", status_code=200)
+def resend_invoice(invoice_id: int, db: Session = Depends(get_db)):
+    invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    invoice_data = schemas.InvoiceOut.from_orm(invoice).dict()
+
+    pdf_bytes = generate_invoice_pdf_from_html(
+        invoice_data,
+        signature_base64=invoice.signature_base64 or "",
+        signed_at=invoice.signed_at.strftime("%m/%d/%Y %H:%M") if invoice.signed_at else "",
+        accepted=invoice.accepted
+    )
+
+    send_invoice_email(
+        to_email=invoice.customer.email,
+        subject=f"Invoice #{invoice.invoice_number}",
+        body=f"Here is your invoice #{invoice.invoice_number} for your records.",
+        attachment=io.BytesIO(pdf_bytes),
+        filename=f"invoice_{invoice.invoice_number}.pdf"
+    )
+
+    return {"message": "Invoice resent successfully"}

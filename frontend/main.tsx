@@ -13,6 +13,7 @@ import InvoicesList from "./app/routes/invoices/list";
 import EditCustomer from "./app/routes/customers/edit";
 import EditInvoice from "./app/routes/invoices/edit-invoice";
 import AcknowledgeInvoice from "./app/routes/invoices/acknowledge";
+import ViewInvoice from "./app/routes/invoices/view-invoice";
 
 
 const router = createBrowserRouter([
@@ -27,7 +28,9 @@ const router = createBrowserRouter([
             { path: "edit-customer/:id", element: <EditCustomer /> },
             { path: "edit-invoice/:invoiceId", element: <EditInvoice /> },
             { path: "create-invoice/:customerId", element: <CreateInvoice /> },
-            { path: "invoices/:invoiceId/acknowledge", element: <AcknowledgeInvoice /> },        ],
+            { path: "invoices/:invoiceId/acknowledge", element: <AcknowledgeInvoice /> }, 
+            { path: "/view-invoice/:invoiceId", element: <ViewInvoice /> },
+        ],
     },
 ]);
 

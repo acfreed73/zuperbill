@@ -24,6 +24,7 @@ def acknowledge_invoice(
     invoice.accepted = ack.accepted or False
     invoice.signed_at = ack.signed_at or datetime.utcnow()
     invoice.signature_base64 = ack.signature_base64
+    invoice.testimonial = ack.testimonial 
     db.commit()
     db.refresh(invoice)
 
