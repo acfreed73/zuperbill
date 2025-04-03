@@ -30,7 +30,8 @@ def list_customers(
     if search:
         search_filter = f"%{search.lower()}%"
         base_query = base_query.filter(
-            func.lower(models.Customer.name).like(search_filter) |
+            func.lower(models.Customer.first_name).like(search_filter) |
+            func.lower(models.Customer.last_name).like(search_filter) |
             func.lower(models.Customer.email).like(search_filter) |
             func.lower(models.Customer.phone).like(search_filter)
         )

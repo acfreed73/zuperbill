@@ -4,13 +4,15 @@ from datetime import datetime
 
 # Shared
 class CustomerBase(BaseModel):
-    name: str
+    first_name: str
+    last_name: str
     email: EmailStr
     phone: Optional[str] = None
     street: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     zipcode: Optional[str] = None
+    referral_source: Optional[str] = None
 class LineItemCreate(BaseModel):
     description: str
     quantity: int

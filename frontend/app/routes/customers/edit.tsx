@@ -16,13 +16,15 @@ export default function EditCustomer() {
             })
             .then(data => {
                 setForm({
-                    name: data.name,
+                    first_name: data.first_name,
+                    last_name: data.last_name,
                     email: data.email,
                     phone: data.phone || "",
                     street: data.street || "",
                     city: data.city || "",
                     state: data.state || "",
-                    zipcode: data.zipcode || ""
+                    zipcode: data.zipcode || "",
+                    referral_source: data.referral_source || "",
                 });
             })
             .catch(err => {

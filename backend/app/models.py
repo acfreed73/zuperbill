@@ -7,13 +7,15 @@ class Customer(Base):
     __tablename__ = "customers"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
+    first_name = Column(String, index=True)
+    last_name = Column(String, index=True)
     email = Column(String, unique=True, index=True)
     phone = Column(String, nullable=True)
     street = Column(String, nullable=True)
     city = Column(String, nullable=True)
     state = Column(String, nullable=True)
     zipcode = Column(String, nullable=True)
+    referral_source = Column(String, nullable=True)
 
     invoices = relationship("Invoice", back_populates="customer")
 class Invoice(Base):

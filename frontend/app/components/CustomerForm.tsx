@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
 
 export interface CustomerFormData {
-    name: string;
+    first_name: string;
+    last_name: string;
     email: string;
     phone?: string;
     street?: string;
     city?: string;
     state?: string;
     zipcode?: string;
+    referral_source?: string;
 }
 
 const US_STATES = [
@@ -45,7 +47,7 @@ export default function CustomerForm({ form, setForm, onSubmit, submitLabel = "S
     const handleFormSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!localForm.name || !localForm.email) {
+        if (!localForm.first_name || !localForm.email || !localForm.last_name) {
             alert("Name and email are required.");
             return;
         }
@@ -56,11 +58,22 @@ export default function CustomerForm({ form, setForm, onSubmit, submitLabel = "S
     return (
         <form onSubmit={handleFormSubmit} className="space-y-4">
             <div>
-                <label className="block mb-1">Name *</label>
+                <label className="block mb-1">First Name *</label>
                 <input
                     type="text"
-                    name="name"
-                    value={localForm.name}
+                    name="first_name"
+                    value={localForm.first_name}
+                    onChange={handleChange}
+                    required
+                    className="w-full border border-gray-300 rounded px-3 py-2"
+                />
+            </div>
+            <div>
+                <label className="block mb-1">Last Name *</label>
+                <input
+                    type="text"
+                    name="last_name"
+                    value={localForm.last_name}
                     onChange={handleChange}
                     required
                     className="w-full border border-gray-300 rounded px-3 py-2"
@@ -127,6 +140,16 @@ export default function CustomerForm({ form, setForm, onSubmit, submitLabel = "S
                         type="text"
                         name="zipcode"
                         value={localForm.zipcode || ""}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded px-3 py-2"
+                    />
+                </div>
+                <div className="flex-1">
+                    <label className="block mb-1">Referral Source</label>
+                    <input
+                        type="text"
+                        name="referral_source"
+                        value={localForm.referral_source || ""}
                         onChange={handleChange}
                         className="w-full border border-gray-300 rounded px-3 py-2"
                     />

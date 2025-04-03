@@ -119,7 +119,7 @@ def generate_invoice_pdf_from_html(invoice_data: dict, signature_base64: str = "
             </div>
             <div class="meta-right">
                 <strong>Customer:</strong><br />
-                {invoice_data["customer"]["name"]}<br />
+                {invoice_data["customer"]["first_name"]} {invoice_data["customer"]["last_name"]}<br />
                 {invoice_data["customer"]["street"]}<br />
                 {invoice_data["customer"]["city"]}, {invoice_data["customer"]["state"]} {invoice_data["customer"].get("zipcode", "")}<br />
                 {invoice_data["customer"].get("phone", "")}<br />
@@ -172,7 +172,7 @@ def generate_invoice_pdf_from_html(invoice_data: dict, signature_base64: str = "
         <blockquote style="margin-top: 2em; font-style: italic; border-left: 4px solid #ccc; padding-left: 1em;">
             {invoice_data['testimonial']}
             <br />
-            &mdash; {invoice_data['customer']['name']}
+            &mdash; {invoice_data['customer']['first_name']}
         </blockquote>
         ''' if accepted and invoice_data.get("testimonial") else ""
     ) + """

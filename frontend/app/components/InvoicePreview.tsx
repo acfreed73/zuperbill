@@ -60,7 +60,7 @@ export default function InvoicePreview({ invoice, signatureDataUrl, signedAt, ac
                 </div>
                 <div className="w-1/2 text-right">
                     <p><strong>Customer:</strong></p>
-                    <p>{invoice.customer.name}</p>
+                    <p>{invoice.customer.first_name} {invoice.customer.last_name}</p>
                     <p>{invoice.customer.street}</p>
                     <p>{invoice.customer.city}, {invoice.customer.state} {invoice.customer.zipcode}</p>
                     <p>{invoice.customer.phone}</p>
@@ -122,7 +122,7 @@ export default function InvoicePreview({ invoice, signatureDataUrl, signedAt, ac
                             <blockquote className="mt-6 border-l-4 border-gray-400 pl-4 italic text-sm text-gray-700">
                                 {testimonial}
                                 <br />
-                                <span className="text-xs text-right block mt-1">— {invoice.customer.name}</span>
+                                <span className="text-xs text-right block mt-1">— {invoice.customer.first_name}</span>
                             </blockquote>
                         )}
                     </>

@@ -7,13 +7,15 @@ import CustomerForm, { type CustomerFormData } from "../../components/CustomerFo
 export default function AddCustomer() {
     const navigate = useNavigate();
     const [form, setForm] = useState<CustomerFormData>({
-        name: "",
+        first_name: "",
+        last_name: "",
         email: "",
         phone: "",
         street: "",
         city: "",
         state: "",
-        zipcode: ""
+        zipcode: "",
+        referral_source: ""
     });
 
     const handleSubmit = async () => {

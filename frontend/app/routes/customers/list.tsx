@@ -11,13 +11,15 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 
 interface Customer {
     id: number;
-    name: string;
+    first_name: string;
+    last_name: string;
     email: string;
     phone?: string;
     street?: string;
     city?: string;
     state?: string;
     zipcode?: string;
+    referral_source?: string;
     total_unpaid: number;
 }
 
@@ -71,7 +73,7 @@ export default function CustomerList() {
 
             <input
                 type="text"
-                placeholder="Search by name, email, or phone..."
+                placeholder="Search by first and last name, email, or phone..."
                 className="border px-3 py-2 mb-4 w-full rounded"
                 value={search}
                 onChange={(e) => {
@@ -84,15 +86,22 @@ export default function CustomerList() {
                 <div key={c.id} className="border rounded p-4 mb-6 bg-white shadow">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="font-bold text-lg">{c.name}</p>
+                            <p className="font-bold text-lg">{c.first_name} {c.last_name}</p>
                             <p className="text-sm text-gray-600">{c.email}</p>
                             <p className="text-sm">{c.phone || "-"}</p>
                             <p className="text-sm italic">
                                 {[c.street, c.city, c.state, c.zipcode].filter(Boolean).join(", ")}
                             </p>
+                            <p className="text-sm"><strong>Referral Source: </strong>{c.referral_source || "-"}</p>
+                            {(c.total_unpaid > 0) ? 
                             <p className="mt-1 text-red-600 font-bold">
                                 Unpaid: ${c.total_unpaid.toFixed(2)}
+                            </p> 
+                            :
+                            <p className="mt-1 text-green-600 font-bold">
+                                Unpaid: ${c.total_unpaid.toFixed(2)}
                             </p>
+                            }
                         </div>
                         <div className="space-x-3 mt-1">
                             <Link to={`/create-invoice/${c.id}`} className="text-blue-600">
