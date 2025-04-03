@@ -12,6 +12,8 @@ import CustomerList from "./app/routes/customers/list";
 import InvoicesList from "./app/routes/invoices/list";
 import EditCustomer from "./app/routes/customers/edit";
 import EditInvoice from "./app/routes/invoices/edit-invoice";
+import AcknowledgeInvoice from "./app/routes/invoices/acknowledge";
+
 
 const router = createBrowserRouter([
     {
@@ -25,7 +27,7 @@ const router = createBrowserRouter([
             { path: "edit-customer/:id", element: <EditCustomer /> },
             { path: "edit-invoice/:invoiceId", element: <EditInvoice /> },
             { path: "create-invoice/:customerId", element: <CreateInvoice /> },
-        ],
+            { path: "invoices/:invoiceId/acknowledge", element: <AcknowledgeInvoice /> },        ],
     },
 ]);
 

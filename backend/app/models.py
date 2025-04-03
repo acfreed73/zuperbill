@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text, Date
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text, Date, Boolean
 from sqlalchemy.orm import relationship
 from datetime import datetime, date
 from app.database import Base
@@ -32,6 +32,10 @@ class Invoice(Base):
     payment_type = Column(String, nullable=True)
     paid_at = Column(DateTime, nullable=True)
     invoice_number = Column(String, unique=True, nullable=False)
+
+    signed_at = Column(DateTime, nullable=True)
+    accepted = Column(Boolean, default=False)
+    signature_base64 = Column(Text, nullable=True)
 
     customer = relationship("Customer", back_populates="invoices")
     items = relationship("LineItem", back_populates="invoice")

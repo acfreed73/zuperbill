@@ -1,8 +1,13 @@
 import os
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import customers, invoices
+from app.routes import customers, invoices, acknowledgment
+from fastapi.staticfiles import StaticFiles
+
 from app.db_init import create_db
+
+load_dotenv()
 
 app = FastAPI(title="ZuperBill API")
 
@@ -14,8 +19,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(customers.router, prefix="/customers", tags=["Customers"])
 app.include_router(invoices.router, prefix="/invoices", tags=["Invoices"])
+app.include_router(acknowledgment.router)
+
 
 # Only run create_db on actual Uvicorn worker process
 @app.on_event("startup")

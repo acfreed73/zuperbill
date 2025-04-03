@@ -90,9 +90,8 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
                                 <td className="p-2">{inv.status}</td>
                                 <td className="p-2">${inv.final_total.toFixed(2)}</td>
                                 <td className="p-2 space-x-2">
-                                    <Link to={`/edit-invoice/${inv.id}`} className="text-blue-600">
-                                        Edit
-                                    </Link>
+                                    <Link to={`/edit-invoice/${inv.id}`} className="text-blue-600"> Edit </Link>
+                                    <Link to={`/invoices/${inv.id}/acknowledge`} className="text-green-600">Acknowledge</Link>
                                     <button
                                         onClick={() => handleDelete(inv.id)}
                                         className="text-red-600"

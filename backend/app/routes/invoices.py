@@ -1,8 +1,10 @@
+# backend/app/routes/invoices.py
 from datetime import datetime, date
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
-from app.pdf import generate_invoice_pdf
+from app.pdf import generate_invoice_pdf_from_html
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app import models, schemas

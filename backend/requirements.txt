@@ -6,6 +6,7 @@ pydantic
 sqlalchemy
 aiofiles
 python-multipart
+python-dotenv
 Jinja2
 email-validator
 Jinja2

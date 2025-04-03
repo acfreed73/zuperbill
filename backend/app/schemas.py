@@ -74,4 +74,10 @@ class InvoiceUpdate(BaseModel):
     tax: Optional[float] = None
     payment_type: Optional[str] = None
     paid_at: Optional[datetime] = None
+class InvoiceAcknowledgment(BaseModel):
+    signed_at: Optional[datetime]
+    accepted: Optional[bool]
+    signature_base64: Optional[str]
 
+    class Config:
+        from_attributes = True
