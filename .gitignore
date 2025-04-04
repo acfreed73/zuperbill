@@ -33,3 +33,13 @@ frontend/.DS_Store
 # OS
 .DS_Store
 Thumbs.db
+
+# Ignore actual certs, but keep folder if needed
+backend/certs/*.pem
+backend/certs/*.crt
+backend/certs/*.key
+backend/certs/*.pdf
+frontend/certs/*.pem
+frontend/certs/*.crt
+frontend/certs/*.key
+frontend/certs/*.pdf

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomerForm, { type CustomerFormData } from "../../components/CustomerForm";
-
+import api from '@/services/api';
 
 
 export default function AddCustomer() {
@@ -20,23 +20,15 @@ export default function AddCustomer() {
 
     const handleSubmit = async () => {
         try {
-            const res = await fetch("http://192.168.1.187:8000/customers/", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(form)
-            });
-
-            if (res.ok) {
-                navigate("/customers");
-            } else {
-                const err = await res.json();
-                alert(err.detail || "Failed to add customer");
-            }
-        } catch (err) {
+            const res = await api.post('/customers/', form); 
+            navigate("/customers");
+        } catch (err: any) {
             console.error(err);
-            alert("Error submitting form.");
+            const message = err.response?.data?.detail || "Failed to add customer";
+            alert(message);
         }
     };
+
 
     return (
         <div className="p-4 max-w-xl mx-auto">

@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, case
-from app import models, schemas
+from sqlalchemy import func
+from app import models
+from schemas.customers import CustomerCreate, CustomerOut
 from app.database import get_db
 
 router = APIRouter()
 
-@router.post("/", response_model=schemas.CustomerOut)
-def create_customer(customer: schemas.CustomerCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=CustomerOut)
+def create_customer(customer: CustomerCreate, db: Session = Depends(get_db)):
     existing = db.query(models.Customer).filter(models.Customer.email == customer.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already exists.")
@@ -18,7 +19,7 @@ def create_customer(customer: schemas.CustomerCreate, db: Session = Depends(get_
     db.refresh(db_customer)
     return db_customer
 
-@router.get("/", response_model=list[schemas.CustomerWithUnpaid])
+@router.get("/", response_model=list[CustomerOut])
 def list_customers(
     search: str = Query("", alias="q"),
     limit: int = Query(20, ge=1, le=100),
@@ -46,21 +47,21 @@ def list_customers(
         ).scalar()
 
         result.append({
-            **schemas.CustomerOut.from_orm(c).dict(),
+            **CustomerOut.from_orm(c).dict(),
             "total_unpaid": unpaid_total
         })
 
     return result
 
 
-@router.get("/{customer_id}", response_model=schemas.CustomerOut)
+@router.get("/{customer_id}", response_model=CustomerOut)
 def get_customer(customer_id: int, db: Session = Depends(get_db)):
     customer = db.query(models.Customer).filter(models.Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
     return customer
-@router.put("/{customer_id}", response_model=schemas.CustomerOut)
-def update_customer(customer_id: int, updated: schemas.CustomerCreate, db: Session = Depends(get_db)):
+@router.put("/{customer_id}", response_model=CustomerOut)
+def update_customer(customer_id: int, updated: CustomerCreate, db: Session = Depends(get_db)):
     customer = db.query(models.Customer).filter(models.Customer.id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")

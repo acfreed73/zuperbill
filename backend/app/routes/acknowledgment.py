@@ -2,7 +2,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app import models, schemas
+from app import models
+from schemas.invoices import InvoiceOut, InvoiceAcknowledgment
 from app.pdf import generate_invoice_pdf_from_html
 from app.utils.email import send_invoice_email
 import io
@@ -10,10 +11,10 @@ from datetime import datetime
 
 router = APIRouter()
 
-@router.post("/invoices/{invoice_id}/acknowledge", response_model=schemas.InvoiceOut)
+@router.post("/invoices/{invoice_id}/acknowledge", response_model=InvoiceOut)
 def acknowledge_invoice(
     invoice_id: int,
-    ack: schemas.InvoiceAcknowledgment,
+    ack: InvoiceAcknowledgment,
     db: Session = Depends(get_db)
 ):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
@@ -29,7 +30,7 @@ def acknowledge_invoice(
     db.refresh(invoice)
 
     # Generate PDF
-    invoice_data = schemas.InvoiceOut.from_orm(invoice).dict()
+    invoice_data = InvoiceOut.from_orm(invoice).dict()
     pdf_bytes = generate_invoice_pdf_from_html(
     invoice_data,
     signature_base64=ack.signature_base64 or "",

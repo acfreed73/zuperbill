@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZuperCam</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+      background: black;
+      overflow: hidden;
+    }
+
+    video,
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .controls {
+      position: absolute;
+      bottom: 10px;
+      width: 100%;
+      display: flex;
+      justify-content: space-around;
+      z-index: 10;
+    }
+
+    .controls button {
+      background: rgba(255, 255, 255, 0.85);
+      border: none;
+      padding: 12px;
+      border-radius: 50%;
+      font-size: 22px;
+      width: 60px;
+      height: 60px;
+    }
+
+    .recording {
+      background-color: red !important;
+      color: white;
+    }
+
+    #snapshot {
+      display: none;
+      z-index: 5;
+      background: black;
+    }
+  </style>
+</head>
+
+<body>
+
+  <video id="video" autoplay playsinline muted></video>
+  <img id="snapshot" />
+
+  <div class="controls">
+    <button id="switchBtn" title="Switch Camera">🔄</button>
+    <button id="photoBtn" title="Photo">📸</button>
+    <button id="recordBtn" title="Record">⏺️</button>
+    <button id="flashBtn" title="Flash">⚡</button>
+  </div>
+
+  <script type="module">
+    let useFrontCamera = false;
+    let currentStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let flashlightOn = false;
+
+    const video = document.getElementById("video");
+    const snapshot = document.getElementById("snapshot");
+    const recordBtn = document.getElementById("recordBtn");
+
+    async function unlockPermissions() {
+      try {
+        await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      } catch (err) {
+        console.warn("Initial permission request failed:", err);
+      }
+    }
+
+    async function startCamera(retry = true) {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+
+      const constraints = {
+        video: {
+          facingMode: useFrontCamera ? "user" : "environment"
+        },
+        audio: true
+      };
+
+      try {
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+        video.srcObject = currentStream;
+
+        const track = currentStream.getVideoTracks()[0];
+        const capabilities = track.getCapabilities?.();
+        if (capabilities?.torch) {
+          await track.applyConstraints({ advanced: [{ torch: flashlightOn }] }).catch(console.warn);
+        }
+
+        // Auto-retry if stream doesn't start
+        setTimeout(() => {
+          if (video.videoWidth === 0 && retry) {
+            console.warn("No video width — retrying with opposite camera...");
+            useFrontCamera = !useFrontCamera;
+            startCamera(false); // only retry once
+          }
+        }, 2000);
+
+      } catch (err) {
+        console.error("Camera start failed:", err);
+      }
+    }
+
+    document.getElementById("switchBtn").onclick = async () => {
+      useFrontCamera = !useFrontCamera;
+      await startCamera();
+    };
+
+    document.getElementById("photoBtn").onclick = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext("2d").drawImage(video, 0, 0);
+      const dataURL = canvas.toDataURL("image/png");
+
+      snapshot.src = dataURL;
+      snapshot.style.display = "block";
+      setTimeout(() => snapshot.style.display = "none", 1200);
+
+      const a = document.createElement("a");
+      a.href = dataURL;
+      a.download = `zuper-photo-${Date.now()}.png`;
+      a.click();
+    };
+
+    recordBtn.onclick = () => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+        recordBtn.classList.remove("recording");
+        return;
+      }
+
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(currentStream);
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: "video/webm" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `zuper-video-${Date.now()}.webm`;
+        a.click();
+      };
+
+      mediaRecorder.start();
+      recordBtn.classList.add("recording");
+    };
+
+    document.getElementById("flashBtn").onclick = async () => {
+      flashlightOn = !flashlightOn;
+      const track = currentStream?.getVideoTracks?.()[0];
+      const capabilities = track?.getCapabilities?.();
+      if (capabilities?.torch) {
+        try {
+          await track.applyConstraints({ advanced: [{ torch: flashlightOn }] });
+        } catch (e) {
+          console.warn("Torch toggle failed", e);
+        }
+      }
+    };
+
+    await unlockPermissions();
+    await startCamera();
+
+  </script>
+</body>
+
+</html>

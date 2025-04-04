@@ -4,16 +4,15 @@ import {
     createBrowserRouter,
     RouterProvider,
 } from "react-router-dom";
-import Root from "./app/root";
-import Home from "./app/routes/home";
-import AddCustomer from "./app/routes/customers/add"; 
-import CreateInvoice from "./app/routes/invoices/create-invoice";
-import CustomerList from "./app/routes/customers/list";
-import InvoicesList from "./app/routes/invoices/list";
-import EditCustomer from "./app/routes/customers/edit";
-import EditInvoice from "./app/routes/invoices/edit-invoice";
-import AcknowledgeInvoice from "./app/routes/invoices/acknowledge";
-import ViewInvoice from "./app/routes/invoices/view-invoice";
+import Root from "./src/root";
+import Home from "./src/routes/home";
+import AddCustomer from "./src/routes/customers/add"; 
+import CreateInvoice from "./src/routes/invoices/create-invoice";
+import CustomerList from "./src/routes/customers/list";
+import InvoicesList from "./src/routes/invoices/list";
+import EditCustomer from "./src/routes/customers/edit";
+import EditInvoice from "./src/routes/invoices/edit-invoice";
+import AcknowledgeInvoice from "./src/routes/invoices/acknowledge";
 
 
 const router = createBrowserRouter([
@@ -29,7 +28,6 @@ const router = createBrowserRouter([
             { path: "edit-invoice/:invoiceId", element: <EditInvoice /> },
             { path: "create-invoice/:customerId", element: <CreateInvoice /> },
             { path: "invoices/:invoiceId/acknowledge", element: <AcknowledgeInvoice /> }, 
-            { path: "/view-invoice/:invoiceId", element: <ViewInvoice /> },
         ],
     },
 ]);

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import api from '@/services/api';
 
 interface Invoice {
     id: number;
@@ -7,6 +8,7 @@ interface Invoice {
     date: string;
     status: string;
     final_total: number;
+    accepted?: boolean;
 }
 
 export default function InvoiceList({ customerId }: { customerId?: number }) {
@@ -15,13 +17,12 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
 
     const fetchInvoices = async () => {
         try {
-            const params = new URLSearchParams();
-            if (customerId) params.append("customer_id", customerId.toString());
-            if (statusFilter !== "all") params.append("status", statusFilter);
+            const params: Record<string, string> = {};
+            if (customerId) params.customer_id = customerId.toString();
+            if (statusFilter !== "all") params.status = statusFilter;
 
-            const response = await fetch(`http://192.168.1.187:8000/invoices/?${params.toString()}`);
-            const data = await response.json();
-            setInvoices(data);
+            const response = await api.get('/invoices/', { params });
+            setInvoices(response.data);
         } catch (err) {
             console.error("Failed to fetch invoices", err);
         }
@@ -34,13 +35,10 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
     const handleDelete = async (id: number) => {
         if (!confirm("Are you sure you want to delete this invoice?")) return;
 
-        const res = await fetch(`http://192.168.1.187:8000/invoices/${id}`, {
-            method: "DELETE",
-        });
-
-        if (res.ok) {
+        try {
+            await api.delete(`/invoices/${id}`);
             setInvoices(prev => prev.filter(inv => inv.id !== id));
-        } else {
+        } catch {
             alert("Failed to delete invoice.");
         }
     };
@@ -91,13 +89,7 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
                                 <td className="p-2">${inv.final_total.toFixed(2)}</td>
                                 <td className="p-2 space-x-2">
                                     <Link to={`/edit-invoice/${inv.id}`} className="text-blue-600"> Edit </Link>
-                                    {inv.accepted ? (
-                                        <Link to={`/view-invoice/${inv.id}`}>
-                                            <button className="bg-gray-700 text-white px-3 py-1 rounded text-sm">View Invoice</button>
-                                        </Link>
-                                    ) : (
-                                        <Link to={`/invoices/${inv.id}/acknowledge`} className="text-green-600">Ack</Link>
-                                    )}
+                                    <Link to={`/invoices/${inv.id}/acknowledge`} className="text-green-600">Ack</Link>
                                     <button
                                         onClick={() => handleDelete(inv.id)}
                                         className="text-red-600"

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import CustomerForm, { type CustomerFormData } from "../../components/CustomerForm";
-
+import api from '@/services/api';
 export default function EditCustomer() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
@@ -9,12 +9,10 @@ export default function EditCustomer() {
 
     useEffect(() => {
         if (!id) return;
-        fetch(`http://192.168.1.187:8000/customers/${id}`)
+
+        api.get(`/customers/${id}`)
             .then(res => {
-                if (!res.ok) throw new Error("Customer not found");
-                return res.json();
-            })
-            .then(data => {
+                const data = res.data;
                 setForm({
                     first_name: data.first_name,
                     last_name: data.last_name,
@@ -37,19 +35,13 @@ export default function EditCustomer() {
     const handleSubmit = async () => {
         if (!form || !id) return;
 
-        const response = await fetch(`http://192.168.1.187:8000/customers/${id}`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(form)
-        });
-
-        if (response.ok) {
+        try {
+            await api.put(`/customers/${id}`, form);
             navigate("/customers");
-        } else {
-            const err = await response.json();
-            alert(err.detail || "Failed to update customer");
+        } catch (err: any) {
+            console.error(err);
+            const message = err.response?.data?.detail || "Failed to update customer";
+            alert(message);
         }
     };
 

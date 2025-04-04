@@ -4,7 +4,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import customers, invoices, acknowledgment, testimonials, line_items
 from fastapi.staticfiles import StaticFiles
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request
 
+app = FastAPI()
 
 from app.db_init import create_db
 
@@ -28,6 +32,13 @@ app.include_router(line_items.router)
 
 
 # Only run create_db on actual Uvicorn worker process
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    print("Validation error:", exc.errors())
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
 @app.on_event("startup")
 def startup():
     if os.getenv("RUN_MAIN") == "true":

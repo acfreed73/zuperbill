@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "../pdf-extract-kit/invoice2data"
+		},
+		{
+			"path": "."
+		}
+	],
+	"settings": {}
+}

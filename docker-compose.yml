@@ -7,12 +7,14 @@ services:
     command: ./start.sh
     volumes:
       - ./backend:/app
+      - ./frontend/certs:/app/certs
     ports:
       - "8000:8000"
     depends_on:
       - db
     environment:
       - DATABASE_URL=postgresql+psycopg2://zuperuser:zuperpass@db:5432/zuperbill
+      - PYTHONPATH=/app
 
   db:
     image: postgres:15

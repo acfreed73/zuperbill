@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import api from '@/services/api';
 
 interface LineItem {
     id?: number;
@@ -31,10 +32,11 @@ export default function EditInvoice() {
     const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
 
     useEffect(() => {
-        fetch(`http://192.168.1.187:8000/invoices/${invoiceId}`)
-            .then(res => res.json())
-            .then(setInvoice);
+        api.get(`/invoices/${invoiceId}`)
+            .then(res => setInvoice(res.data))
+            .catch(err => console.error("Failed to load invoice", err));
     }, [invoiceId]);
+
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         if (!invoice) return;
@@ -55,9 +57,10 @@ export default function EditInvoice() {
         setHighlightedIndex(-1);
         if (value.trim() === "") return setSuggestions([]);
 
-        const res = await fetch(`http://192.168.1.187:8000/line-items/descriptions?q=${encodeURIComponent(value)}`);
-        const data = await res.json();
-        setSuggestions(data);
+        const res = await api.get('/line-items/descriptions', {
+            params: { q: value },
+        });
+        setSuggestions(res.data);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
@@ -91,25 +94,24 @@ export default function EditInvoice() {
         if (!invoice) return;
 
         const updatedInvoice = {
-            ...invoice,
+            customer_id: invoice.customer_id,
+            status: invoice.status,
+            due_date: invoice.due_date,
+            notes: invoice.notes,
+            payment_type: invoice.payment_type,
+            discount: invoice.discount,
+            tax: invoice.tax,
+            testimonial: invoice.testimonial,
             items: invoice.items.map(({ description, quantity, unit_price }) => ({
                 description,
                 quantity,
                 unit_price,
             })),
         };
-
-        const response = await fetch(`http://192.168.1.187:8000/invoices/${invoiceId}`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(updatedInvoice),
-        });
-
-        if (response.ok) {
+        try {
+            await api.put(`/invoices/${invoiceId}`, updatedInvoice);
             navigate("/customers");
-        } else {
+        } catch {
             alert("Failed to update invoice");
         }
     };

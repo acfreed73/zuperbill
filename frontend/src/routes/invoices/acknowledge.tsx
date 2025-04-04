@@ -1,6 +1,7 @@
 // app/routes/invoices/acknowledge.tsx
 import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import api from '@/services/api';
 import SignatureCanvas from "react-signature-canvas";
 import InvoicePreview from "../../components/InvoicePreview";
 import PaymentModal from "../../components/PaymentModal";
@@ -31,16 +32,18 @@ export default function AcknowledgeInvoice() {
     
     useEffect(() => {
         if (!selectedTheme) return;
-        fetch(`http://192.168.1.187:8000/ai/generate-testimonial?theme=${selectedTheme}`)
-            .then(res => res.text())
-            .then(setTestimonial)
+        api.get(`/ai/generate-testimonial`, {
+            params: { theme: selectedTheme },
+            responseType: 'text',
+        })
+            .then(res => setTestimonial(res.data))
             .catch(console.error);
     }, [selectedTheme]);
+
     
     useEffect(() => {
-        fetch(`http://192.168.1.187:8000/invoices/${invoiceId}`)
-            .then(res => res.json())
-            .then(setInvoice)
+        api.get(`/invoices/${invoiceId}`)
+            .then(res => setInvoice(res.data))
             .catch(err => console.error("Failed to load invoice", err));
     }, [invoiceId]);
 
@@ -66,20 +69,18 @@ export default function AcknowledgeInvoice() {
             testimonial,
         };
 
-        const res = await fetch(`http://192.168.1.187:8000/invoices/${invoiceId}/acknowledge`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
-
-        if (res.ok) {
+        try {
+            await api.post(`/invoices/${invoiceId}/acknowledge`, payload);
             window.location.href = "/customers";
-        } else {
-            alert("Failed to submit. Try again.");
+        } catch (err: any) {
+            console.error("Submit failed", err);
+            const message = err.response?.data?.detail || "Failed to submit. Try again.";
+            alert(message);
+        } finally {
+            setSubmitting(false);
         }
-
-        setSubmitting(false);
     };
+
 
 
     const handleClear = () => {
@@ -88,30 +89,22 @@ export default function AcknowledgeInvoice() {
     };
 
     const handleUpdatePayment = async (updates: any) => {
-        const res = await fetch(`http://192.168.1.187:8000/invoices/${invoiceId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(updates)
-        });
-
-        if (res.ok) {
-            const updated = await res.json();
-            setInvoice(updated);
+        try {
+            const res = await api.patch(`/invoices/${invoiceId}`, updates);
+            setInvoice(res.data);
             setShowModal(false);
-        } else {
+        } catch {
             alert("Failed to update payment info.");
         }
     };
 
-    const handleEmail = async () => {
-        const res = await fetch(`http://192.168.1.187:8000/invoices/${invoiceId}/email`, {
-            method: "POST"
-        });
 
-        if (res.ok) {
+    const handleEmail = async () => {
+        try {
+            await api.post(`/invoices/${invoiceId}/email`);
             alert("Invoice emailed successfully.");
             navigate("/customers");
-        } else {
+        } catch {
             alert("Failed to send invoice.");
         }
     };
@@ -133,8 +126,12 @@ export default function AcknowledgeInvoice() {
             {/* Terms + Testimonial UI */}
             <div className="mt-6">
                 <label className="block font-semibold mb-2">Terms & Conditions</label>
-                <div className="border p-2 text-sm h-32 overflow-y-scroll bg-gray-50 rounded">
-                    By signing below, you acknowledge the services were completed to your satisfaction and accept the terms outlined in the invoice. Payment is due as per terms specified.
+                <div className="h-40 border rounded overflow-hidden">
+                    <iframe
+                        src="https://callitweb.com/zacharyfreed/terms.html"
+                        title="Terms & Conditions"
+                        className="w-full h-full"
+                    />
                 </div>
                 <label className="block mt-2">
                     <input
@@ -268,20 +265,15 @@ export default function AcknowledgeInvoice() {
                             <button
                                 className="bg-blue-600 text-white px-4 py-2 rounded"
                                 onClick={async () => {
-                                    const res = await fetch(`http://192.168.1.187:8000/invoices/${invoiceId}`, {
-                                        method: "PATCH",
-                                        headers: { "Content-Type": "application/json" },
-                                        body: JSON.stringify({
+                                    try {
+                                        const res = await api.patch(`/invoices/${invoiceId}`, {
                                             status: paymentStatus,
                                             payment_type: paymentType,
                                             notes: paymentNotes,
-                                        }),
-                                    });
-                                    if (res.ok) {
-                                        const updated = await res.json();
-                                        setInvoice(updated);
+                                        });
+                                        setInvoice(res.data);
                                         setShowPaymentModal(false);
-                                    } else {
+                                    } catch {
                                         alert("Failed to update invoice.");
                                     }
                                 }}

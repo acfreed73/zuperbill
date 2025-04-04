@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import api from '@/services/api';
 import InvoiceList from "../invoices/list";
 import React from "react";
 import {
@@ -36,8 +37,8 @@ export default function CustomerList() {
             offset: ((page - 1) * pageSize).toString(),
         });
 
-        const res = await fetch(`http://192.168.1.187:8000/customers/?${params}`);
-        const data = await res.json();
+        const res = await api.get('/customers/', { params });
+        const data = res.data;
         setCustomers(data);
     };
 
@@ -48,16 +49,16 @@ export default function CustomerList() {
     const handleDelete = async (id: number) => {
         if (!confirm("Are you sure you want to delete this customer?")) return;
 
-        const res = await fetch(`http://192.168.1.187:8000/customers/${id}`, {
-            method: "DELETE",
-        });
-
-        if (res.ok) {
+        try {
+            await api.delete(`/customers/${id}`);
             setCustomers((prev) => prev.filter((c) => c.id !== id));
-        } else {
+        } catch (err: any) {
+            console.error(err);
             alert("Failed to delete customer.");
         }
     };
+
+
 
     return (
         <div className="p-4 max-w-4xl mx-auto">

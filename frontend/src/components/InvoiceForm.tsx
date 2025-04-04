@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import api from '@/services/api';
 
 export default function InvoiceForm({ customerId }: { customerId: string }) {
     const navigate = useNavigate();
@@ -23,8 +24,10 @@ export default function InvoiceForm({ customerId }: { customerId: string }) {
     const fetchDescriptions = async (query: string) => {
         if (!query.trim()) return setAllDescriptions([]);
         try {
-            const res = await fetch(`http://192.168.1.187:8000/line-items/descriptions?q=${encodeURIComponent(query)}`);
-            const data = await res.json();
+            const res = await api.get('/line-items/descriptions', {
+                params: { q: encodeURIComponent(query) },
+            });
+            const data = res.data;
             if (Array.isArray(data)) setAllDescriptions(data);
         } catch (err) {
             console.error("Error fetching suggestions", err);
@@ -49,23 +52,22 @@ export default function InvoiceForm({ customerId }: { customerId: string }) {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const response = await fetch("http://192.168.1.187:8000/invoices/", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
+
+        try {
+            const response = await api.post('/invoices/', {
                 customer_id: parseInt(customerId),
                 ...form,
                 items,
-            }),
-        });
+            });
 
-        if (response.ok) {
-            const data = await response.json();
             navigate("/customers");
-        } else {
-            alert("Error creating invoice");
+        } catch (err: any) {
+            console.error(err);
+            const message = err.response?.data?.detail || "Error creating invoice";
+            alert(message);
         }
     };
+
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">

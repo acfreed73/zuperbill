@@ -13,10 +13,8 @@
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
     "rootDirs": [".", "./.react-router/types"],
-    "baseUrl": ".",
-    "paths": {
-      "~/*": ["./app/*"]
-    },
+    "baseUrl": "./src",
+    "paths": { "@/*": [ "*" ] },
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,

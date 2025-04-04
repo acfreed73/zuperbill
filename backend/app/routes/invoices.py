@@ -7,14 +7,16 @@ from app.pdf import generate_invoice_pdf_from_html
 from app.utils.email import send_invoice_email
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from app import models, schemas
+from app import models
+from schemas.invoices import InvoiceCreate, InvoiceOut,  InvoiceUpdate
+
 from app.database import get_db
 
 import io
 router = APIRouter()
 
-@router.post("/", response_model=schemas.InvoiceOut)
-def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)):
+@router.post("/", response_model=InvoiceOut)
+def create_invoice(invoice: InvoiceCreate, db: Session = Depends(get_db)):
     customer = db.query(models.Customer).filter(models.Customer.id == invoice.customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -62,7 +64,7 @@ def create_invoice(invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)
     db.commit()
     db.refresh(db_invoice)
     return db_invoice
-@router.get("/", response_model=list[schemas.InvoiceOut])
+@router.get("/", response_model=list[InvoiceOut])
 def list_invoices(
     status: Optional[str] = Query(None),
     customer_id: Optional[int] = Query(None),
@@ -78,18 +80,19 @@ def list_invoices(
     if customer_id:
         query = query.filter(models.Invoice.customer_id == customer_id)
 
-    return query.offset(offset).limit(limit).all()
+    return [InvoiceOut.from_orm(inv) for inv in query.offset(offset).limit(limit).all()]
 
-
-@router.get("/{invoice_id}", response_model=schemas.InvoiceOut)
+@router.get("/{invoice_id}", response_model=InvoiceOut)
 def get_invoice(invoice_id: int, db: Session = Depends(get_db)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    return invoice
-@router.patch("/{invoice_id}", response_model=schemas.InvoiceOut)
-def update_invoice(invoice_id: int, invoice_update: schemas.InvoiceUpdate, db: Session = Depends(get_db)):
+    return InvoiceOut.from_orm(invoice)
+
+@router.patch("/{invoice_id}", response_model=InvoiceOut)
+def update_invoice(invoice_id: int, invoice_update: InvoiceUpdate, db: Session = Depends(get_db)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+    
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
@@ -114,13 +117,13 @@ def update_invoice(invoice_id: int, invoice_update: schemas.InvoiceUpdate, db: S
 #     if not invoice:
 #         raise HTTPException(status_code=404, detail="Invoice not found")
 
-#     invoice_data = schemas.InvoiceOut.from_orm(invoice).dict()
+#     invoice_data = InvoiceOut.from_orm(invoice).dict()
 #     pdf_bytes = generate_invoice_pdf(invoice_data)
 #     return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={
 #         "Content-Disposition": f"inline; filename=invoice_{invoice_id}.pdf"
 #     })
-@router.put("/{invoice_id}", response_model=schemas.InvoiceOut)
-def replace_invoice(invoice_id: int, updated_invoice: schemas.InvoiceCreate, db: Session = Depends(get_db)):
+@router.put("/{invoice_id}", response_model=InvoiceOut)
+def replace_invoice(invoice_id: int, updated_invoice: InvoiceCreate, db: Session = Depends(get_db)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     print(f"Invoice: {invoice}")
     if not invoice:
@@ -174,7 +177,7 @@ def resend_invoice(invoice_id: int, db: Session = Depends(get_db)):
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
-    invoice_data = schemas.InvoiceOut.from_orm(invoice).dict()
+    invoice_data = InvoiceOut.from_orm(invoice).dict()
 
     pdf_bytes = generate_invoice_pdf_from_html(
         invoice_data,
