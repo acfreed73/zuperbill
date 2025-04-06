@@ -1,3 +1,4 @@
+// frontend/components/InvoicePreview.tsx
 import React, { useEffect, useState } from "react";
 
 interface Props {
@@ -8,14 +9,30 @@ interface Props {
     testimonial?: string;
 }
 
+export default function InvoicePreview({
+    invoice,
+    signatureDataUrl,
+    signedAt,
+    accepted,
+    testimonial: propTestimonial,
+}: Props) {
+    const paidDate = invoice.paid_at
+        ? new Date(invoice.paid_at).toLocaleDateString()
+        : null;
 
-export default function InvoicePreview({ invoice, signatureDataUrl, signedAt, accepted }: Props) {
-    const paidDate = invoice.paid_at ? new Date(invoice.paid_at).toLocaleDateString() : null;
-    const [testimonial, setTestimonial] = useState(invoice.testimonial || "");
+    const signature = invoice.signature_base64 || signatureDataUrl;
+    const isAccepted = invoice.accepted ?? accepted ?? false;
+    const signedTime = invoice.signed_at
+        ? new Date(invoice.signed_at).toLocaleString()
+        : signedAt || "";
+
+    const [testimonial, setTestimonial] = useState(
+        invoice.testimonial || propTestimonial || ""
+    );
 
     useEffect(() => {
-        setTestimonial(invoice.testimonial || "");
-    }, [invoice.testimonial]);
+        setTestimonial(invoice.testimonial || propTestimonial || "");
+    }, [invoice.testimonial, propTestimonial]);
 
     return (
         <div className="relative bg-white shadow p-6 max-w-4xl mx-auto text-sm leading-relaxed">
@@ -29,7 +46,7 @@ export default function InvoicePreview({ invoice, signatureDataUrl, signedAt, ac
                             backgroundSize: "contain",
                             backgroundRepeat: "no-repeat",
                             backgroundPosition: "center",
-                            transform: "rotate(-15deg)"
+                            transform: "rotate(-15deg)",
                         }}
                     />
                     <div className="absolute top-[56%] left-[56%] text-red-600 text-3xl font-bold z-10 transform -rotate-[40deg] -translate-x-1/2 opacity-60">
@@ -42,10 +59,14 @@ export default function InvoicePreview({ invoice, signatureDataUrl, signedAt, ac
             <div className="flex justify-between items-start mb-4 relative z-10">
                 <img src="/zuper_blue.png" alt="ZH" className="h-16" />
                 <div className="text-right text-xs">
-                    <strong>Zuper Handy Services</strong><br />
-                    3907 Cleveland St.<br />
-                    Skokie IL. 60076<br />
-                    (847) 271-1468<br />
+                    <strong>Zuper Handy Services</strong>
+                    <br />
+                    3907 Cleveland St.
+                    <br />
+                    Skokie IL. 60076
+                    <br />
+                    (847) 271-1468
+                    <br />
                     billing@zuperhandy.com
                 </div>
             </div>
@@ -53,16 +74,35 @@ export default function InvoicePreview({ invoice, signatureDataUrl, signedAt, ac
             {/* Invoice & Customer Details */}
             <div className="flex justify-between mb-4 relative z-10">
                 <div className="w-1/2">
-                    <p><strong>Invoice #: </strong>{invoice.invoice_number}</p>
-                    <p><strong>Date: </strong>{new Date(invoice.date).toLocaleDateString()}</p>
-                    <p><strong>Status: </strong>{invoice.status}</p>
-                    <p><strong>Payment Type: </strong>{invoice.payment_type || "N/A"}</p>
+                    <p>
+                        <strong>Invoice #: </strong>
+                        {invoice.invoice_number}
+                    </p>
+                    <p>
+                        <strong>Date: </strong>
+                        {new Date(invoice.date).toLocaleDateString()}
+                    </p>
+                    <p>
+                        <strong>Status: </strong>
+                        {invoice.status}
+                    </p>
+                    <p>
+                        <strong>Payment Type: </strong>
+                        {invoice.payment_type || "N/A"}
+                    </p>
                 </div>
                 <div className="w-1/2 text-right">
-                    <p><strong>Customer:</strong></p>
-                    <p>{invoice.customer.first_name} {invoice.customer.last_name}</p>
+                    <p>
+                        <strong>Customer:</strong>
+                    </p>
+                    <p>
+                        {invoice.customer.first_name} {invoice.customer.last_name}
+                    </p>
                     <p>{invoice.customer.street}</p>
-                    <p>{invoice.customer.city}, {invoice.customer.state} {invoice.customer.zipcode}</p>
+                    <p>
+                        {invoice.customer.city}, {invoice.customer.state}{" "}
+                        {invoice.customer.zipcode}
+                    </p>
                     <p>{invoice.customer.phone}</p>
                     <p>{invoice.customer.email}</p>
                 </div>
@@ -83,8 +123,12 @@ export default function InvoicePreview({ invoice, signatureDataUrl, signedAt, ac
                         <tr key={idx}>
                             <td className="border p-2">{item.description}</td>
                             <td className="border p-2">{item.quantity}</td>
-                            <td className="border p-2">${item.unit_price.toFixed(2)}</td>
-                            <td className="border p-2">${(item.quantity * item.unit_price).toFixed(2)}</td>
+                            <td className="border p-2">
+                                ${item.unit_price.toFixed(2)}
+                            </td>
+                            <td className="border p-2">
+                                ${(item.quantity * item.unit_price).toFixed(2)}
+                            </td>
                         </tr>
                     ))}
                 </tbody>
@@ -95,7 +139,12 @@ export default function InvoicePreview({ invoice, signatureDataUrl, signedAt, ac
                 <p>Subtotal: ${invoice.total.toFixed(2)}</p>
                 <p>Discount: -${(invoice.discount || 0).toFixed(2)}</p>
                 <p>Tax: {(invoice.tax || 0).toFixed(2)}%</p>
-                <p className="font-bold text-base">Total Due: ${invoice.final_total.toFixed(2)}</p>
+                <p
+                    className={`font-bold text-base ${invoice.status === "paid" ? "text-green-600" : "text-red-600"
+                        }`}
+                >
+                    Total Due: ${invoice.status === "paid" ? "0.00" : invoice.total.toFixed(2)}
+                </p>
             </div>
 
             {/* Notes */}
@@ -108,12 +157,18 @@ export default function InvoicePreview({ invoice, signatureDataUrl, signedAt, ac
 
             {/* Signature */}
             <div className="mt-6 relative z-10">
-                <strong>Customer Signature:</strong><br />
-                {signatureDataUrl && accepted ? (
+                <strong>Customer Signature:</strong>
+                <br />
+                {signature && isAccepted ? (
                     <>
-                        <img src={signatureDataUrl} alt="Signature" className="h-20 mt-2" />
+                        {/* <img src={signature} alt="Signature" className="h-20 mt-2" /> */}
+                        <img
+                            src={signature}
+                            alt="Customer Signature"
+                            className="max-w-xs max-h-40 border"
+                        />
                         <p className="text-xs italic mt-1">
-                            Signed and accepted on {signedAt || "N/A"}.
+                            Signed and accepted on {signedTime || "N/A"}.
                         </p>
                         <p className="text-xs text-gray-600">
                             (Customer acknowledged work completion and agreed to terms.)
@@ -122,7 +177,9 @@ export default function InvoicePreview({ invoice, signatureDataUrl, signedAt, ac
                             <blockquote className="mt-6 border-l-4 border-gray-400 pl-4 italic text-sm text-gray-700">
                                 {testimonial}
                                 <br />
-                                <span className="text-xs text-right block mt-1">— {invoice.customer.first_name}</span>
+                                <span className="text-xs text-right block mt-1">
+                                    — {invoice.customer.first_name}
+                                </span>
                             </blockquote>
                         )}
                     </>

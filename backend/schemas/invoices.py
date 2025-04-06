@@ -1,3 +1,4 @@
+# backend/schemas/invoices.py
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
@@ -43,6 +44,12 @@ class InvoiceOut(InvoiceBase):
     date: Optional[datetime]
     due_date: Optional[datetime]
     signed_at: Optional[datetime]
+    accepted: Optional[bool]                # <-- Add this
+    signature_base64: Optional[str] = None  # <-- Add this
+    uuid_token: Optional[str] = None        # <-- Add this
+    token_expiry: Optional[datetime] = None # <-- Add this
+    paid_at: Optional[datetime] = None
+    testimonial: Optional[str] = None
     customer: CustomerOut
     items: List[LineItemOut]
     total: float = 0.0
@@ -50,10 +57,11 @@ class InvoiceOut(InvoiceBase):
 
     class Config:
         from_attributes = True
+
 class InvoiceAcknowledgment(BaseModel):
     signed_at: Optional[datetime]
     accepted: Optional[bool]
-    signature_base64: Optional[str]
+    signature_base64: Optional[str] = None
     testimonial: Optional[str] = None
 
 

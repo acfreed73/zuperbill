@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text, Date, Boolean
 from sqlalchemy.orm import relationship
-from datetime import datetime, date
+from datetime import  date
 from app.database import Base
 
 class Customer(Base):
@@ -16,7 +16,7 @@ class Customer(Base):
     state = Column(String, nullable=True)
     zipcode = Column(String, nullable=True)
     referral_source = Column(String, nullable=True)
-
+    is_active = Column(Boolean, default=True)
     invoices = relationship("Invoice", back_populates="customer")
 class Invoice(Base):
     __tablename__ = "invoices"
@@ -39,11 +39,21 @@ class Invoice(Base):
     accepted = Column(Boolean, default=False)
     signature_base64 = Column(Text, nullable=True)
     testimonial = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+
+    uuid_token = Column(String, unique=True, index=True, nullable=True)
+    token_expiry = Column(DateTime, nullable=True)
 
     customer = relationship("Customer", back_populates="invoices")
     items = relationship("LineItem", back_populates="invoice")
+    public_tokens = relationship("PublicToken", back_populates="invoice", cascade="all, delete-orphan")
 
-
+class InvoiceAccessToken(Base):
+    __tablename__ = "invoice_access_tokens"
+    id = Column(Integer, primary_key=True)
+    invoice_id = Column(Integer, ForeignKey("invoices.id"))
+    token = Column(String, unique=True, index=True)
+    expires_at = Column(DateTime)
 
 class LineItem(Base):
     __tablename__ = "line_items"
@@ -55,3 +65,18 @@ class LineItem(Base):
     unit_price = Column(Float)
 
     invoice = relationship("Invoice", back_populates="items")
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True)
+    email = Column(String, unique=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+    is_admin = Column(Boolean, default=True)
+class PublicToken(Base):
+    __tablename__ = "public_tokens"
+    id = Column(Integer, primary_key=True)
+    token = Column(String, unique=True, nullable=False)
+    invoice_id = Column(Integer, ForeignKey("invoices.id", ondelete="CASCADE"), nullable=False)
+    expires_at = Column(DateTime)
+
+    invoice = relationship("Invoice", back_populates="public_tokens")

@@ -1,0 +1,94 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ./backend
+    volumes:
+      - ./backend:/app
+      - ./frontend/certs:/app/certs
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - PYTHONPATH=/app
+    env_file:
+      - ./backend/.env.prod
+    expose:
+      - "8000"
+    depends_on:
+      - db
+    networks:
+      - zuper-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.zuperbill.rule=Host(`invoice.zuperhandy.com`)"
+      - "traefik.http.routers.zuperbill.entrypoints=websecure"
+      - "traefik.http.routers.zuperbill.tls.certresolver=letsencrypt"
+      - "traefik.http.services.zuperbill.loadbalancer.server.port=8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    expose:
+      - "3000"
+    networks:
+      - zuper-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.zuperfront.rule=Host(`invoice.zuperhandy.com`)"
+      - "traefik.http.routers.zuperfront.entrypoints=websecure"
+      - "traefik.http.routers.zuperfront.tls.certresolver=letsencrypt"
+      - "traefik.http.services.zuperfront.loadbalancer.server.port=3000"
+
+  db:
+    image: postgres:15
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: zuperuser
+      POSTGRES_PASSWORD: zuperpass
+      POSTGRES_DB: zuperbill
+    networks:
+      - zuper-net
+
+  zh:
+    image: nginx:alpine
+    volumes:
+      - ./zh:/usr/share/nginx/html:ro
+    networks:
+      - zuper-net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.zuperlanding.rule=Host(`zuperhandy.com`)"
+      - "traefik.http.routers.zuperlanding.entrypoints=websecure"
+      - "traefik.http.routers.zuperlanding.tls.certresolver=letsencrypt"
+      - "traefik.http.services.zuperlanding.loadbalancer.server.port=80"
+
+  traefik:
+    image: traefik:latest
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--certificatesresolvers.letsencrypt.acme.email=adam@zuperhandy.com"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "./data/certs:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    networks:
+      - zuper-net
+
+volumes:
+  postgres_data:
+
+networks:
+  zuper-net:

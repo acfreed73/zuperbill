@@ -13,6 +13,7 @@ import InvoicesList from "./src/routes/invoices/list";
 import EditCustomer from "./src/routes/customers/edit";
 import EditInvoice from "./src/routes/invoices/edit-invoice";
 import AcknowledgeInvoice from "./src/routes/invoices/acknowledge";
+import PublicInvoice from "./src/routes/public/invoice";
 
 
 const router = createBrowserRouter([
@@ -30,6 +31,8 @@ const router = createBrowserRouter([
             { path: "invoices/:invoiceId/acknowledge", element: <AcknowledgeInvoice /> }, 
         ],
     },
+        { path: "/public/invoice/:token", element: <PublicInvoice />, },
+
 ]);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

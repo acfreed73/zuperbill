@@ -10,6 +10,7 @@ __pycache__/
 .venv/
 venv/
 *.env
+backend/.env.prod
 
 # Alembic
 backend/alembic/versions/*.pyc

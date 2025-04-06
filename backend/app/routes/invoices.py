@@ -1,5 +1,6 @@
 # backend/app/routes/invoices.py
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
+import uuid
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
@@ -92,12 +93,12 @@ def get_invoice(invoice_id: int, db: Session = Depends(get_db)):
 @router.patch("/{invoice_id}", response_model=InvoiceOut)
 def update_invoice(invoice_id: int, invoice_update: InvoiceUpdate, db: Session = Depends(get_db)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
-    
+    print(f"invoice: {invoice}")
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     updates = invoice_update.dict(exclude_unset=True)
-
+    
     # Auto-set paid_at if status changed to "paid"
     if "status" in updates and updates["status"] == "paid" and invoice.paid_at is None:
         invoice.paid_at = datetime.utcnow()
@@ -111,17 +112,6 @@ def update_invoice(invoice_id: int, invoice_update: InvoiceUpdate, db: Session =
     db.commit()
     db.refresh(invoice)
     return invoice
-# @router.get("/{invoice_id}/pdf")
-# def download_invoice_pdf(invoice_id: int, db: Session = Depends(get_db)):
-#     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
-#     if not invoice:
-#         raise HTTPException(status_code=404, detail="Invoice not found")
-
-#     invoice_data = InvoiceOut.from_orm(invoice).dict()
-#     pdf_bytes = generate_invoice_pdf(invoice_data)
-#     return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={
-#         "Content-Disposition": f"inline; filename=invoice_{invoice_id}.pdf"
-#     })
 @router.put("/{invoice_id}", response_model=InvoiceOut)
 def replace_invoice(invoice_id: int, updated_invoice: InvoiceCreate, db: Session = Depends(get_db)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
@@ -161,7 +151,24 @@ def replace_invoice(invoice_id: int, updated_invoice: InvoiceCreate, db: Session
     db.refresh(invoice)
     return invoice
 
+@router.post("/{invoice_id}/generate-token")
+def generate_invoice_token(invoice_id: int, db: Session = Depends(get_db)):
+    invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
 
+    token = str(uuid.uuid4())
+    expiry = datetime.utcnow() + timedelta(days=3)
+
+    invoice.uuid_token = token
+    invoice.token_expiry = expiry
+
+    db.commit()
+    return {
+        "token": token,
+        "expires": expiry,
+        "url": f"https://invoice.zuperhandy.com/public/invoice/{token}"
+    }
 
 @router.delete("/{invoice_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_invoice(invoice_id: int, db: Session = Depends(get_db)):
