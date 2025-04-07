@@ -1,7 +1,9 @@
 import time
+from app.models import User
+from app.database import SessionLocal
+from passlib.hash import bcrypt
 from sqlalchemy.exc import OperationalError
 from app.database import engine, Base
-from app.models import Customer, Invoice, LineItem
 
 def create_db():
     retries = 10
@@ -18,3 +20,20 @@ def create_db():
             time.sleep(delay)
 
     raise Exception("❌ Failed to connect to the database after multiple attempts.")
+
+def seed_admin():
+    db = SessionLocal()
+    existing = db.query(User).filter(User.email == "admin@zuperhandy.com").first()
+    if not existing:
+        print("🌱 Seeding admin user...")
+        admin = User(
+            email="admin@zuperhandy.com",
+            hashed_password=bcrypt.hash("adminpass"),
+            is_active=True,
+            is_admin=True
+        )
+        db.add(admin)
+        db.commit()
+    else:
+        print("ℹ️ Admin user already exists")
+    db.close()

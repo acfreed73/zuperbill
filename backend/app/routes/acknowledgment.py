@@ -1,3 +1,4 @@
+from app.utils.auth import verify_token
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -18,7 +19,7 @@ router = APIRouter()
 def acknowledge_invoice(
     invoice_id: int,
     ack: InvoiceAcknowledgment,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db), token: dict = Depends(verify_token)
 ):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     if not invoice:

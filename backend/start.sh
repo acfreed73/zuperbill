@@ -12,6 +12,8 @@ export PYTHONPATH=/app
 
 echo "✅ Postgres is ready."
 
+export RUN_MAIN=true
+
 echo "🧹 Resetting migrations..."
 rm -f alembic/versions/*.py
 

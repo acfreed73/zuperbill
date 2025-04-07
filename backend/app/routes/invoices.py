@@ -2,6 +2,7 @@
 from datetime import datetime, date, timedelta
 import uuid
 from typing import Optional
+from app.utils.auth import verify_token
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 from app.pdf import generate_invoice_pdf_from_html
@@ -17,7 +18,7 @@ import io
 router = APIRouter()
 
 @router.post("/", response_model=InvoiceOut)
-def create_invoice(invoice: InvoiceCreate, db: Session = Depends(get_db)):
+def create_invoice(invoice: InvoiceCreate, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
     customer = db.query(models.Customer).filter(models.Customer.id == invoice.customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -71,7 +72,7 @@ def list_invoices(
     customer_id: Optional[int] = Query(None),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db), token: dict = Depends(verify_token)
 ):
     query = db.query(models.Invoice)
 
@@ -84,14 +85,14 @@ def list_invoices(
     return [InvoiceOut.from_orm(inv) for inv in query.offset(offset).limit(limit).all()]
 
 @router.get("/{invoice_id}", response_model=InvoiceOut)
-def get_invoice(invoice_id: int, db: Session = Depends(get_db)):
+def get_invoice(invoice_id: int, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
     return InvoiceOut.from_orm(invoice)
 
 @router.patch("/{invoice_id}", response_model=InvoiceOut)
-def update_invoice(invoice_id: int, invoice_update: InvoiceUpdate, db: Session = Depends(get_db)):
+def update_invoice(invoice_id: int, invoice_update: InvoiceUpdate, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     print(f"invoice: {invoice}")
     if not invoice:
@@ -113,7 +114,7 @@ def update_invoice(invoice_id: int, invoice_update: InvoiceUpdate, db: Session =
     db.refresh(invoice)
     return invoice
 @router.put("/{invoice_id}", response_model=InvoiceOut)
-def replace_invoice(invoice_id: int, updated_invoice: InvoiceCreate, db: Session = Depends(get_db)):
+def replace_invoice(invoice_id: int, updated_invoice: InvoiceCreate, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     print(f"Invoice: {invoice}")
     if not invoice:
@@ -152,15 +153,16 @@ def replace_invoice(invoice_id: int, updated_invoice: InvoiceCreate, db: Session
     return invoice
 
 @router.post("/{invoice_id}/generate-token")
-def generate_invoice_token(invoice_id: int, db: Session = Depends(get_db)):
+def generate_invoice_token(invoice_id: int, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
-    token = str(uuid.uuid4())
+    uuid_token = str(uuid.uuid4())
+
     expiry = datetime.utcnow() + timedelta(days=3)
 
-    invoice.uuid_token = token
+    invoice.uuid_token = uuid_token
     invoice.token_expiry = expiry
 
     db.commit()
@@ -171,7 +173,7 @@ def generate_invoice_token(invoice_id: int, db: Session = Depends(get_db)):
     }
 
 @router.delete("/{invoice_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_invoice(invoice_id: int, db: Session = Depends(get_db)):
+def delete_invoice(invoice_id: int, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
@@ -179,7 +181,7 @@ def delete_invoice(invoice_id: int, db: Session = Depends(get_db)):
     db.commit()
     return None
 @router.post("/{invoice_id}/resend", status_code=200)
-def resend_invoice(invoice_id: int, db: Session = Depends(get_db)):
+def resend_invoice(invoice_id: int, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")

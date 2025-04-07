@@ -1,3 +1,4 @@
+// frontend/src/root.tsx
 import {
   isRouteErrorResponse,
   Links,

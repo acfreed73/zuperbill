@@ -1,5 +1,6 @@
 # backend/app/routes/testimonials.py
-from fastapi import APIRouter, Query
+from app.utils.auth import verify_token
+from fastapi import APIRouter, Query, Depends
 import random
 
 router = APIRouter()
@@ -81,5 +82,5 @@ THEME_TEMPLATES = {
 
 
 @router.get("/generate-testimonial")
-def generate_testimonial(theme: str = Query("overall")):
+def generate_testimonial(theme: str = Query("overall"), token: dict = Depends(verify_token)):
     return random.choice(THEME_TEMPLATES.get(theme, THEME_TEMPLATES["overall"]))
