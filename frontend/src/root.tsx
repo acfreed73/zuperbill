@@ -3,13 +3,16 @@ import {
   isRouteErrorResponse,
   Links,
   Meta,
-  Outlet,
+  // Outlet,
   Scripts,
   ScrollRestoration,
 } from "react-router";
 
+import { Outlet, Link, useNavigate } from "react-router-dom";
+
 import type { Route } from "../app/+types/root";
 import "./app.css";
+
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -43,7 +46,33 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  const navigate = useNavigate();
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+  return (
+    <div className="min-h-screen bg-gray-100">
+      <header className="sticky top-0 z-50 bg-gray-100 border-b shadow">
+        <div className="flex items-center gap-4 text-sm max-w-screen-lg mx-auto p-4">
+          <img src="/zuperhandy_white.gif" alt="ZuperHandy Logo" className="h-10" />
+          <Link to="/" className="text-blue-600 hover:underline">Home</Link>
+          <Link to="/customers" className="text-blue-600 hover:underline">Customers</Link>
+          <Link to="/reports/tech-summary" className="text-blue-600 hover:underline">Tech Summary Report</Link>
+          <button
+            onClick={handleLogout}
+            className="ml-auto bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+          >
+            Logout
+          </button>
+        </div>
+      </header>
+
+      <main className="max-w-screen-lg mx-auto p-4">
+        <Outlet />
+      </main>
+    </div>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

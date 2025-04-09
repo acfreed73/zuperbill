@@ -18,6 +18,7 @@ from app.routes import (
     line_items,
     public,
     auth,
+    reports,
 )
 from app.utils.auth import verify_token
 from app.db_init import create_db, seed_admin
@@ -73,6 +74,7 @@ app.include_router(acknowledgment.router)
 app.include_router(testimonials.router, prefix="/ai")
 app.include_router(line_items.router)
 app.include_router(public.router)
+app.include_router(reports.router, prefix="/reports", tags=["Reports"])
 
 # Error handling
 @app.exception_handler(RequestValidationError)
