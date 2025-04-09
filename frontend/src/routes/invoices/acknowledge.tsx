@@ -225,6 +225,13 @@ export default function AcknowledgeInvoice() {
 
             {/* Buttons */}
             <div className="mt-6 flex gap-4">
+                <button
+                    onClick={() => setShowPaymentModal(true)}
+                    className="bg-yellow-600 text-white px-6 py-2 rounded"
+                >
+                    Mark as Paid
+                </button>
+
                 {!invoice.accepted && (
                     <button
                         onClick={handleSubmit}
@@ -241,12 +248,6 @@ export default function AcknowledgeInvoice() {
                             className="bg-green-600 text-white px-6 py-2 rounded"
                         >
                             Email Invoice
-                        </button>
-                        <button
-                            onClick={() => setShowPaymentModal(true)}
-                            className="bg-yellow-600 text-white px-6 py-2 rounded"
-                        >
-                            Mark as Paid
                         </button>
                     </>
                 )}
