@@ -17,13 +17,15 @@ RUN apt-get update && \
     netcat-openbsd \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy application
 COPY app ./app
-COPY start.sh ./start.sh
-RUN chmod +x ./start.sh
+COPY start_prod.sh ./start_prod.sh
+RUN chmod +x ./start_prod.sh
 
 ENV PYTHONPATH=/app
 
-CMD ["./start.sh"]
+CMD ["./start_prod.sh"]

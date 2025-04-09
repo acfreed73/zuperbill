@@ -3,7 +3,6 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile.prod
     volumes:
       - ./backend:/app
       - ./frontend/certs:/app/certs
@@ -18,7 +17,10 @@ services:
       SMTP_BACKUP: billing@zuperhandy.com
       FROM_EMAIL: "ZuperHandy <no-reply@zuperhandy.com>"
       JWT_SECRET: a0c4512cb531914405508ba867133820b79f0a10cb6ba229b2695270ba24463f
-      PUBLIC_FRONTEND_URL: https://invoice.zuperhandy.com
+      # - DATABASE_URL=${DATABASE_URL}
+      # - PYTHONPATH=/app
+    env_file:
+      - ./backend/.env.prod
     expose:
       - "8000"
     depends_on:
@@ -32,10 +34,11 @@ services:
       - "traefik.http.routers.zuperbill.tls.certresolver=letsencrypt"
       - "traefik.http.services.zuperbill.loadbalancer.server.port=8000"
 
+
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile.prod
+      dockerfile: Dockerfile
     expose:
       - "3000"
     networks:
