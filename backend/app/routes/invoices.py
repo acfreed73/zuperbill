@@ -51,7 +51,8 @@ def create_invoice(invoice: InvoiceCreate, db: Session = Depends(get_db), token:
         payment_type=invoice.payment_type,
         date=today,
         invoice_number=invoice_number,  # Make sure your model and schema support this field
-        testimonial=invoice.testimonial
+        testimonial=invoice.testimonial,
+        tech_id=invoice.tech_id
     )
     print(f"Invoice: {db_invoice}")
 
@@ -81,15 +82,33 @@ def list_invoices(
 
     if customer_id:
         query = query.filter(models.Invoice.customer_id == customer_id)
+    
+    # invoices = query.offset(offset).limit(limit).all()
+    results = []
 
-    return [InvoiceOut.from_orm(inv) for inv in query.offset(offset).limit(limit).all()]
+    for inv in query:
+        inv_out = InvoiceOut.from_orm(inv)
+        if inv.tech:
+            inv_out.user_name = inv.tech.user_name or inv.tech.email
+        results.append(inv_out)
+
+    return results
+    # return [InvoiceOut.from_orm(inv) for inv in query.offset(offset).limit(limit).all()]
 
 @router.get("/{invoice_id}", response_model=InvoiceOut)
 def get_invoice(invoice_id: int, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    return InvoiceOut.from_orm(invoice)
+    
+    invoice_out = InvoiceOut.from_orm(invoice)
+    
+    # Attach tech_name if available
+    if invoice.tech:
+        invoice_out.user_name = invoice.tech.user_name or invoice.tech.email
+
+    return invoice_out
+
 
 @router.patch("/{invoice_id}", response_model=InvoiceOut)
 def update_invoice(invoice_id: int, invoice_update: InvoiceUpdate, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
@@ -129,6 +148,7 @@ def replace_invoice(invoice_id: int, updated_invoice: InvoiceCreate, db: Session
     invoice.discount = updated_invoice.discount or 0.0
     invoice.tax = updated_invoice.tax or 0.0
     invoice.testimonial = updated_invoice.testimonial
+    invoice.tech_id = updated_invoice.tech_id
 
     # Recalculate totals
     subtotal = sum(item.quantity * item.unit_price for item in updated_invoice.items)

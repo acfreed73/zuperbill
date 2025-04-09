@@ -11,8 +11,8 @@ export default function InvoiceForm({ customerId }: { customerId: string }) {
         payment_type: "",
         discount: 0,
         tax: 0,
+        tech_id: "",
     });
-
     const [items, setItems] = useState([
         { description: "", quantity: 1, unit_price: 0 },
     ]);
@@ -20,6 +20,13 @@ export default function InvoiceForm({ customerId }: { customerId: string }) {
     const [allDescriptions, setAllDescriptions] = useState<string[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [highlightedIndex, setHighlightedIndex] = useState(-1);
+    const [users, setUsers] = useState<{ id: number; user_name?: string; email: string }[]>([]);
+
+    useEffect(() => {
+        api.get("/users")
+            .then((res) => setUsers(res.data))
+            .catch((err) => console.error("Error fetching users", err));
+    }, []);
 
     const fetchDescriptions = async (query: string) => {
         if (!query.trim()) return setAllDescriptions([]);
@@ -57,9 +64,9 @@ export default function InvoiceForm({ customerId }: { customerId: string }) {
             const response = await api.post('/invoices/', {
                 customer_id: parseInt(customerId),
                 ...form,
+                tech_id: form.tech_id ? parseInt(form.tech_id) : null,
                 items,
             });
-
             navigate("/customers");
         } catch (err: any) {
             console.error(err);
@@ -116,6 +123,22 @@ export default function InvoiceForm({ customerId }: { customerId: string }) {
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                     className="w-full border rounded px-3 py-2"
                 />
+            </div>
+            <div>
+                <label className="block mb-1">Assign Technician</label>
+                <select
+                    name="tech_id"
+                    value={form.tech_id}
+                    onChange={(e) => setForm({ ...form, tech_id: e.target.value })}
+                    className="w-full border rounded px-3 py-2"
+                >
+                    <option value="">-- Select Technician --</option>
+                    {users.map((user) => (
+                        <option key={user.id} value={user.id}>
+                            {user.user_name} {"<"}{user.email}{">"}
+                        </option>
+                    ))}
+                </select>
             </div>
 
             <div className="flex gap-4">

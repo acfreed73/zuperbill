@@ -28,6 +28,7 @@ class InvoiceBase(BaseModel):
     discount: Optional[float] = 0.0
     tax: Optional[float] = 0.0
     testimonial: Optional[str] = None
+    tech_id: Optional[int] = None
 
 class InvoiceCreate(InvoiceBase):
     customer_id: int
@@ -54,6 +55,8 @@ class InvoiceOut(InvoiceBase):
     items: List[LineItemOut]
     total: float = 0.0
     final_total: float = 0.0
+    tech_id: Optional[int]
+    user_name: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -1,3 +1,4 @@
+from typing import Optional
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
 
@@ -15,6 +16,7 @@ class UserLogin(BaseModel):
 
 class UserOut(BaseModel):
     id: int
+    user_name: Optional[str] = None
     email: EmailStr
     is_active: bool
 

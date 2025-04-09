@@ -12,6 +12,7 @@ import time
 from app.routes import (
     customers,
     invoices,
+    users,
     acknowledgment,
     testimonials,
     line_items,
@@ -67,6 +68,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(customers.router, prefix="/customers", tags=["Customers"])
 app.include_router(invoices.router, prefix="/invoices", tags=["Invoices"])
+app.include_router(users.router)
 app.include_router(acknowledgment.router)
 app.include_router(testimonials.router, prefix="/ai")
 app.include_router(line_items.router)

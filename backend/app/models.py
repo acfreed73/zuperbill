@@ -43,10 +43,12 @@ class Invoice(Base):
 
     uuid_token = Column(String, unique=True, index=True, nullable=True)
     token_expiry = Column(DateTime, nullable=True)
+    tech_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
     customer = relationship("Customer", back_populates="invoices")
     items = relationship("LineItem", back_populates="invoice")
     public_tokens = relationship("PublicToken", back_populates="invoice", cascade="all, delete-orphan")
+    tech = relationship("User", back_populates="invoices")
 
 class InvoiceAccessToken(Base):
     __tablename__ = "invoice_access_tokens"
@@ -68,10 +70,13 @@ class LineItem(Base):
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
+    user_name = Column(String, nullable=True)
     email = Column(String, unique=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=True)
+
+    invoices = relationship("Invoice", back_populates="tech")
 class PublicToken(Base):
     __tablename__ = "public_tokens"
     id = Column(Integer, primary_key=True)

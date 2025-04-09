@@ -23,17 +23,19 @@ def create_db():
 
 def seed_admin():
     db = SessionLocal()
-    existing = db.query(User).filter(User.email == "admin@zuperhandy.com").first()
+    existing = db.query(User).filter(User.email == "adam@zuperhandy.com" or User.email == "zach@zuperhandy.com").first()
     if not existing:
         print("🌱 Seeding admin user...")
         adam = User(
             email="adam@zuperhandy.com",
+            user_name="Adam",
             hashed_password=bcrypt.hash("adminpass"),
             is_active=True,
             is_admin=True
         )
         zach = User(
             email="zach@zuperhandy.com",
+            user_name="Zach",
             hashed_password=bcrypt.hash("adminpass"),
             is_active=True,
             is_admin=True

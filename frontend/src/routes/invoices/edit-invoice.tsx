@@ -21,6 +21,7 @@ interface Invoice {
     items: LineItem[];
     customer_id: number;
     testimonial: string;
+    tech_id?: number;
 }
 
 export default function EditInvoice() {
@@ -30,6 +31,12 @@ export default function EditInvoice() {
     const [suggestions, setSuggestions] = useState<string[]>([]);
     const [showSuggestionsIndex, setShowSuggestionsIndex] = useState<number | null>(null);
     const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
+    const [users, setUsers] = useState<{ id: number; user_name?: string; email: string }[]>([]);
+    useEffect(() => {
+        api.get("/users")
+            .then(res => setUsers(res.data))
+            .catch(err => console.error("Failed to load users", err));
+    }, []);
 
     useEffect(() => {
         api.get(`/invoices/${invoiceId}`)
@@ -102,6 +109,7 @@ export default function EditInvoice() {
             discount: invoice.discount,
             tax: invoice.tax,
             testimonial: invoice.testimonial,
+            tech_id: invoice.tech_id ?? null,
             items: invoice.items.map(({ description, quantity, unit_price }) => ({
                 description,
                 quantity,
@@ -156,6 +164,23 @@ export default function EditInvoice() {
                     <label>Notes</label>
                     <textarea name="notes" value={invoice.notes || ""} onChange={handleChange} className="w-full border p-2 rounded" />
                 </div>
+                <div>
+                    <label>Assigned Technician</label>
+                    <select
+                        name="tech_id"
+                        value={invoice.tech_id ?? ""}
+                        onChange={handleChange}
+                        className="w-full border p-2 rounded"
+                    >
+                        <option value="">-- Select Technician --</option>
+                        {users.map((user) => (
+                            <option key={user.id} value={user.id}>
+                                {user.user_name} {"<"}{user.email}{">"}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+
                 <div>
                     <label>Testimonial</label>
                     <textarea name="testimonial" value={invoice.testimonial || ""} onChange={handleChange} className="w-full border p-2 rounded" />

@@ -9,6 +9,7 @@ interface Invoice {
     status: string;
     final_total: number;
     accepted?: boolean;
+    user_name?: string;
 }
 
 export default function InvoiceList({ customerId }: { customerId?: number }) {
@@ -72,6 +73,7 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
                             <th className="p-2 text-left">Status</th>
                             <th className="p-2 text-left">Total</th>
                             <th className="p-2 text-left">Actions</th>
+                            <th className="p-2 text-left">Tech</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -97,6 +99,8 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
                                         Delete
                                     </button>
                                 </td>
+                                <td className="p-2">{inv.user_name || "—"}</td>
+
                             </tr>
                         ))}
                     </tbody>
