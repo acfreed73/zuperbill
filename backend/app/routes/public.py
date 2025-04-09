@@ -4,7 +4,7 @@ from app.database import get_db
 from app import models
 from schemas.invoices import InvoiceOut
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 router = APIRouter()
 
@@ -29,3 +29,20 @@ def view_invoice_by_token(token: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Invoice not found")
 
     return invoice
+@router.get("/public/testimonials", response_model=List[dict])
+def get_testimonials(db: Session = Depends(get_db)):
+    invoices = (
+        db.query(models.Invoice)
+        .join(models.Customer)
+        .filter(models.Invoice.testimonial != None)
+        .order_by(models.Invoice.signed_at.desc())
+        .limit(50)
+        .all()
+    )
+    return [
+        {
+            "testimonial": invoice.testimonial.strip('"'),
+            "name": invoice.customer.first_name
+        }
+        for invoice in invoices if invoice.testimonial
+    ]

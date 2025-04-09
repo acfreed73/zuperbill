@@ -4,9 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zach's Handyman Services</title>
+    <title>Zuper Handyman Services</title>
+    <link rel="icon" type="image/png" href="imgs/zuper_blue.png">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    
 </head>
 
 <body>
@@ -73,7 +76,16 @@
             </div>
         </div>
     </section>
-
+       <section class="py-5" style="background: linear-gradient(to right, #b2fefa, #0ed2f7);">
+        <div class="container">
+            <div id="testimonialCarousel" class="carousel slide" data-ride="carousel">
+                <div class="carousel-inner" id="testimonial-carousel-inner">
+                    <!-- Testimonials will be injected here via JS -->
+                </div>
+                <ol class="carousel-indicators" id="testimonial-carousel-dots"></ol>
+            </div>
+        </div>
+    </section>
     <section id="services" class="services">
         <h2>Our Handyman Services</h2>
         <div class="service-cards">
@@ -110,7 +122,6 @@
         <p><strong><i class="fa-solid fa-envelope"></i> Email:</strong> <a
                 href="mailto:zach@zuperhandy.com">zach@zuperhandy.com</a></p>
     </section>
-
     <footer>
         <div class="footer-content">
             <div>
@@ -142,7 +153,47 @@
         </div>
         <p class="copyright">© 2025 Zuper Handy. All rights reserved.</p>
     </footer>
+  
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 
+<script>
+    const isProd = window.location.hostname === "invoice.zuperhandy.com";
+    const testimonialsUrl = isProd
+        ? "https://api.invoice.zuperhandy.com/public/testimonials"
+        : "https://192.168.1.187:8000/public/testimonials";
+
+    fetch(testimonialsUrl)
+        .then(res => res.json())
+        .then(testimonials => {
+            const inner = document.getElementById("testimonial-carousel-inner");
+            const dots = document.getElementById("testimonial-carousel-dots");
+
+            testimonials.forEach((t, i) => {
+                const item = document.createElement("div");
+                item.className = `carousel-item ${i === 0 ? 'active' : ''}`;
+                item.innerHTML = `
+          <div class="d-flex justify-content-center">
+            <div class="card p-4 shadow border-0" style="max-width: 600px;">
+              <div class="card-body text-center">
+                <i class="fas fa-quote-left fa-2x text-success mb-3"></i>
+                <p class="card-text font-italic">"${t.testimonial}"</p>
+                <hr class="my-4">
+                <h6 class="mb-0 text-muted">— ${t.name}, ZuperHandy Customer</h6>
+              </div>
+            </div>
+          </div>
+        `;
+                inner.appendChild(item);
+
+                const dot = document.createElement("li");
+                dot.setAttribute("data-target", "#testimonialCarousel");
+                dot.setAttribute("data-slide-to", i.toString());
+                if (i === 0) dot.className = "active";
+                dots.appendChild(dot);
+            });
+        });
+</script>
 </body>
-
 </html>

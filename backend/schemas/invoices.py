@@ -33,7 +33,7 @@ class InvoiceBase(BaseModel):
 class InvoiceCreate(InvoiceBase):
     customer_id: int
     items: List[LineItemCreate]
-    media_folder_url: Optional[str]
+    media_folder_url: Optional[str] = None
 
 
 class InvoiceUpdate(InvoiceBase):
