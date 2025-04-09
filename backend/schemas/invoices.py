@@ -33,6 +33,7 @@ class InvoiceBase(BaseModel):
 class InvoiceCreate(InvoiceBase):
     customer_id: int
     items: List[LineItemCreate]
+    media_folder_url: Optional[str]
 
 
 class InvoiceUpdate(InvoiceBase):
@@ -57,6 +58,7 @@ class InvoiceOut(InvoiceBase):
     final_total: float = 0.0
     tech_id: Optional[int]
     user_name: Optional[str] = None
+    media_folder_url: Optional[str]
 
     class Config:
         from_attributes = True

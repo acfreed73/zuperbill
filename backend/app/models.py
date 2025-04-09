@@ -44,6 +44,8 @@ class Invoice(Base):
     uuid_token = Column(String, unique=True, index=True, nullable=True)
     token_expiry = Column(DateTime, nullable=True)
     tech_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    media_folder_url = Column(String, nullable=True)
+
 
     customer = relationship("Customer", back_populates="invoices")
     items = relationship("LineItem", back_populates="invoice")

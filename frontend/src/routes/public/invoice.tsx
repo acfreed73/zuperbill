@@ -28,6 +28,19 @@ export default function PublicInvoiceView() {
                 accepted={invoice.accepted}
                 testimonial={invoice.testimonial}
             />
+            {invoice.media_folder_url && (
+                <div className="mt-8">
+                    <h3 className="text-lg font-semibold mb-2">Drive Folder</h3>
+                    <a
+                        href={invoice.media_folder_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline"
+                    >
+                        View Folder on Google Drive
+                    </a>
+                </div>
+            )}
         </div>
     );
 }

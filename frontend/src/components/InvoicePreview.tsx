@@ -107,7 +107,19 @@ export default function InvoicePreview({
                     <p>{invoice.customer.email}</p>
                 </div>
             </div>
-
+            {invoice.media_folder_url && (
+                <div className="mt-4">
+                    <h3 className="font-semibold mb-2">Job Media Folder</h3>
+                    <a
+                        href={invoice.media_folder_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 underline"
+                    >
+                        Open Google Drive Folder
+                    </a>
+                </div>
+            )}
             {/* Items Table */}
             <table className="w-full mt-2 border text-xs relative z-10">
                 <thead>

@@ -22,6 +22,7 @@ interface Invoice {
     customer_id: number;
     testimonial: string;
     tech_id?: number;
+    media_folder_url?: string;
 }
 
 export default function EditInvoice() {
@@ -110,6 +111,7 @@ export default function EditInvoice() {
             tax: invoice.tax,
             testimonial: invoice.testimonial,
             tech_id: invoice.tech_id ?? null,
+            media_folder_url: invoice.media_folder_url ?? null,
             items: invoice.items.map(({ description, quantity, unit_price }) => ({
                 description,
                 quantity,
@@ -184,6 +186,33 @@ export default function EditInvoice() {
                 <div>
                     <label>Testimonial</label>
                     <textarea name="testimonial" value={invoice.testimonial || ""} onChange={handleChange} className="w-full border p-2 rounded" />
+                </div>
+                <div>
+                <label className="block mb-1 font-semibold">Google Drive Folder Link</label>
+                <input
+                    type="url"
+                    name="media_folder_url"
+                    value={invoice.media_folder_url || ""}
+                    onChange={handleChange}
+                    className="w-full border p-2 rounded"
+                    placeholder="https://drive.google.com/drive/folders/..."
+                />
+                    <p className="text-xs text-gray-500 mt-1">
+                        Suggested format: <code>CustomerName-INV{invoice.invoice_number}</code>
+                    </p>
+                    {invoice.media_folder_url && (
+                        <div className="mt-8">
+                            <h3 className="text-lg font-semibold mb-2">Drive Folder</h3>
+                            <a
+                                href={invoice.media_folder_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 underline"
+                            >
+                                View Folder on Google Drive
+                            </a>
+                        </div>
+                    )}
                 </div>
 
                 <div>

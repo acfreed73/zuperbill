@@ -209,6 +209,7 @@ def replace_invoice(invoice_id: int, updated_invoice: InvoiceCreate, db: Session
     invoice.tax = updated_invoice.tax or 0.0
     invoice.testimonial = updated_invoice.testimonial
     invoice.tech_id = updated_invoice.tech_id
+    invoice.media_folder_url = updated_invoice.media_folder_url
 
     # Recalculate totals
     subtotal = sum(item.quantity * item.unit_price for item in updated_invoice.items)
