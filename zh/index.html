@@ -159,10 +159,10 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
 
 <script>
-    const isProd = window.location.hostname === "invoice.zuperhandy.com";
-    const testimonialsUrl = isProd
-        ? "https://api.invoice.zuperhandy.com/public/testimonials"
-        : "https://192.168.1.187:8000/public/testimonials";
+    const isProd = window.location.hostname.endsWith("zuperhandy.com");
+        const testimonialsUrl = isProd
+            ? "https://api.invoice.zuperhandy.com/public/testimonials"
+            : "https://192.168.1.187:8000/public/testimonials";
 
     fetch(testimonialsUrl)
         .then(res => res.json())
