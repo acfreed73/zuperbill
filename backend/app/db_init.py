@@ -26,14 +26,21 @@ def seed_admin():
     existing = db.query(User).filter(User.email == "admin@zuperhandy.com").first()
     if not existing:
         print("🌱 Seeding admin user...")
-        admin = User(
-            email="admin@zuperhandy.com",
+        adam = User(
+            email="adam@zuperhandy.com",
             hashed_password=bcrypt.hash("adminpass"),
             is_active=True,
             is_admin=True
         )
-        db.add(admin)
+        zach = User(
+            email="zach@zuperhandy.com",
+            hashed_password=bcrypt.hash("adminpass"),
+            is_active=True,
+            is_admin=True
+        )
+        db.add(adam)
+        db.add(zach)
         db.commit()
     else:
-        print("ℹ️ Admin user already exists")
+        print("ℹ️ User's already exists")
     db.close()
