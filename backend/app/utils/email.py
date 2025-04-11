@@ -36,3 +36,20 @@ def send_invoice_email(to_email: str, subject: str, body: str, attachment: bytes
     except Exception as e:
         print(f"❌ Email send failed: {e}")
         raise
+def send_email(to: str, subject: str, body: str):
+    FROM_EMAIL = os.getenv("FROM_EMAIL", "billing@zuperhandy.com")
+
+    msg = EmailMessage()
+    msg["From"] = FROM_EMAIL
+    msg["To"] = to
+    msg["Subject"] = subject
+    msg.set_content(body)
+
+    try:
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) as smtp:
+            smtp.login(SMTP_USER, SMTP_PASS)
+            smtp.send_message(msg)
+            print(f"✅ Sent email to {to}, ")
+    except Exception as e:
+        print(f"❌ Email send failed: {e}")
+        raise

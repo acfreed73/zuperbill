@@ -46,6 +46,8 @@ class Invoice(Base):
     tech_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     media_folder_url = Column(String, nullable=True)
 
+    otp_code = Column(String, nullable=True)
+    otp_expiry = Column(DateTime, nullable=True)
 
     customer = relationship("Customer", back_populates="invoices")
     items = relationship("LineItem", back_populates="invoice")

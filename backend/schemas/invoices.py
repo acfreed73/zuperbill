@@ -72,3 +72,7 @@ class InvoiceAcknowledgment(BaseModel):
 
     class Config:
         from_attributes = True
+from pydantic import BaseModel
+
+class OtpVerifyRequest(BaseModel):
+    pin: str

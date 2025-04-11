@@ -1,9 +1,10 @@
 # backend/app/routes/invoices.py
 from datetime import datetime, date, timedelta
+import random
 import uuid
 from typing import Optional
 from app.utils.auth import verify_token
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Body
 from fastapi.responses import StreamingResponse
 from app.pdf import generate_invoice_pdf_from_html
 from app.utils.email import send_invoice_email
@@ -11,6 +12,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app import models
 from schemas.invoices import InvoiceCreate, InvoiceOut,  InvoiceUpdate
+from app.utils.email import send_email
 
 from app.database import get_db
 

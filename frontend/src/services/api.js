@@ -23,9 +23,13 @@ const api = axios.create({ baseURL });
 
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem("token");
-    if (token) {
+
+    // Don't attach Authorization for public endpoints
+    const isPublic = config.url?.includes("/public/invoice/");
+    if (!isPublic && token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
 });
 
