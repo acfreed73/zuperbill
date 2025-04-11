@@ -5,16 +5,16 @@ from fastapi import APIRouter, Query, Depends
 import random
 
 # OpenAI Start
-import os
-import requests
-from fastapi import HTTPException
-from dotenv import load_dotenv
+# import os
+# import requests
+# from fastapi import HTTPException
+# from dotenv import load_dotenv
 
-load_dotenv()
+# load_dotenv()
 
-HF_TOKEN = os.getenv("HF_TOKEN")
-HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.2"
-# HF_MODEL = "google/flan-t5-small"
+# HF_TOKEN = os.getenv("HF_TOKEN")
+# HF_MODEL = "mistralai/Mistral-7B-Instruct-v0.2"
+# # HF_MODEL = "google/flan-t5-small"
 # OpenAI End
 
 router = APIRouter()
@@ -95,69 +95,69 @@ THEME_TEMPLATES = {
 }
 
 
-# @router.get("/generate-testimonial")
-# def generate_testimonial(theme: str = Query("overall"), token: dict = Depends(verify_token)):
-#     return random.choice(THEME_TEMPLATES.get(theme, THEME_TEMPLATES["overall"]))
-
-# Start OpenAI
-def generate_ai_testimonial(theme: str) -> str:
-    if not HF_TOKEN:
-        raise HTTPException(status_code=500, detail="Hugging Face token not set")
-
-    THEME_EXPLANATIONS = {
-        "price": "affordable rates, fair pricing, and great value",
-        "timely": "being punctual, finishing the work on time, and quick responses",
-        "cordial": "friendly and respectful behavior, clear communication",
-        "clean": "leaving the workspace spotless and respecting the home",
-        "quality": "excellent craftsmanship, attention to detail, and lasting results",
-        "overall": "the entire service experience from start to finish"
-    }
-
-    prompt = (
-        f"Write a very positive and authentic customer testimonial for a handyman service named Zuper Handy, "
-        f"specifically complimenting their '{theme}', which refers to {THEME_EXPLANATIONS.get(theme, 'their overall performance')}. "
-        f"The testimonial should be under 3 sentences, sound natural and enthusiastic, and include no criticism. "
-        f"Only output the testimonial text itself, nothing else."
-    )
-
-    payload = {
-        "inputs": prompt,
-        "parameters": {
-            "max_new_tokens": 80,
-            "temperature": 0.9,
-            "top_p": 0.95,
-            "do_sample": True,
-            "repetition_penalty": 1.2
-        }
-    }
-
-    headers = {
-        "Authorization": f"Bearer {HF_TOKEN}"
-    }
-
-    url = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
-    response = requests.post(url, headers=headers, json=payload)
-
-    if response.status_code != 200:
-        raise HTTPException(status_code=response.status_code, detail=response.text)
-
-    result = response.json()
-    if isinstance(result, list) and "generated_text" in result[0]:
-        raw_output = result[0]["generated_text"]
-        # Try to extract the first quoted block or just the part after two newlines
-        match = re.search(r'"([^"]+)"', raw_output)
-        if match:
-            return match.group(1).strip()
-        else:
-            # Fallback: strip the prompt and return the last part
-            parts = raw_output.split("\n\n")
-            return parts[-1].strip()
-
-    elif isinstance(result, dict) and "error" in result:
-        raise HTTPException(status_code=500, detail=result["error"])
-
-    raise HTTPException(status_code=500, detail="Unexpected response from Hugging Face API")
 @router.get("/generate-testimonial")
 def generate_testimonial(theme: str = Query("overall"), token: dict = Depends(verify_token)):
-    return generate_ai_testimonial(theme)
+    return random.choice(THEME_TEMPLATES.get(theme, THEME_TEMPLATES["overall"]))
+
+# Start OpenAI
+# def generate_ai_testimonial(theme: str) -> str:
+#     if not HF_TOKEN:
+#         raise HTTPException(status_code=500, detail="Hugging Face token not set")
+
+#     THEME_EXPLANATIONS = {
+#         "price": "affordable rates, fair pricing, and great value",
+#         "timely": "being punctual, finishing the work on time, and quick responses",
+#         "cordial": "friendly and respectful behavior, clear communication",
+#         "clean": "leaving the workspace spotless and respecting the home",
+#         "quality": "excellent craftsmanship, attention to detail, and lasting results",
+#         "overall": "the entire service experience from start to finish"
+#     }
+
+#     prompt = (
+#         f"Write a very positive and authentic customer testimonial for a handyman service named Zuper Handy, "
+#         f"specifically complimenting their '{theme}', which refers to {THEME_EXPLANATIONS.get(theme, 'their overall performance')}. "
+#         f"The testimonial should be under 3 sentences, sound natural and enthusiastic, and include no criticism. "
+#         f"Only output the testimonial text itself, nothing else."
+#     )
+
+#     payload = {
+#         "inputs": prompt,
+#         "parameters": {
+#             "max_new_tokens": 80,
+#             "temperature": 0.9,
+#             "top_p": 0.95,
+#             "do_sample": True,
+#             "repetition_penalty": 1.2
+#         }
+#     }
+
+#     headers = {
+#         "Authorization": f"Bearer {HF_TOKEN}"
+#     }
+
+#     url = f"https://api-inference.huggingface.co/models/{HF_MODEL}"
+#     response = requests.post(url, headers=headers, json=payload)
+
+#     if response.status_code != 200:
+#         raise HTTPException(status_code=response.status_code, detail=response.text)
+
+#     result = response.json()
+#     if isinstance(result, list) and "generated_text" in result[0]:
+#         raw_output = result[0]["generated_text"]
+#         # Try to extract the first quoted block or just the part after two newlines
+#         match = re.search(r'"([^"]+)"', raw_output)
+#         if match:
+#             return match.group(1).strip()
+#         else:
+#             # Fallback: strip the prompt and return the last part
+#             parts = raw_output.split("\n\n")
+#             return parts[-1].strip()
+
+#     elif isinstance(result, dict) and "error" in result:
+#         raise HTTPException(status_code=500, detail=result["error"])
+
+#     raise HTTPException(status_code=500, detail="Unexpected response from Hugging Face API")
+# @router.get("/generate-testimonial")
+# def generate_testimonial(theme: str = Query("overall"), token: dict = Depends(verify_token)):
+#     return generate_ai_testimonial(theme)
 # end OpenAI
