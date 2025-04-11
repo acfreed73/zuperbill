@@ -68,11 +68,12 @@ class InvoiceAcknowledgment(BaseModel):
     accepted: Optional[bool]
     signature_base64: Optional[str] = None
     testimonial: Optional[str] = None
-
+    status: Optional[str] = None
+    payment_type: Optional[str] = None
+    notes: Optional[str] = None
 
     class Config:
         from_attributes = True
-from pydantic import BaseModel
 
 class OtpVerifyRequest(BaseModel):
     pin: str
