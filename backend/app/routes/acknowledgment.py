@@ -31,11 +31,9 @@ def acknowledge_invoice(
 
     invoice.accepted = ack.accepted or False
 
-    if not invoice.signed_at:
-        invoice.signed_at = ack.signed_at or datetime.utcnow()
+    if ack.status == "paid" and not invoice.paid_at:
         invoice.paid_at = datetime.utcnow()
-
-    if ack.status != "paid":
+    elif ack.status != "paid":
         invoice.paid_at = None
 
     invoice.testimonial = ack.testimonial

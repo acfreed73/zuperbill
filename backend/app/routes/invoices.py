@@ -220,7 +220,6 @@ def replace_invoice(invoice_id: int, updated_invoice: InvoiceCreate, db: Session
 
     # Handle paid_at logic
     if invoice.status == "paid" and not invoice.paid_at:
-        from datetime import datetime
         invoice.paid_at = datetime.utcnow()
     elif invoice.status != "paid":
         invoice.paid_at = None
