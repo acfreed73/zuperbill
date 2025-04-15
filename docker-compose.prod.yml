@@ -7,18 +7,8 @@ services:
     volumes:
       - ./backend:/app
       - ./frontend/certs:/app/certs
-    environment:
-      VITE_API_HOST: api.invoice.zuperhandy.com
-      VITE_API_PORT: 443
-      DATABASE_URL: postgresql+psycopg2://zuperuser:zuperpass@db:5432/zuperbill
-      SMTP_HOST: smtp.purelymail.com
-      SMTP_PORT: 465
-      SMTP_USER: billing@zuperhandy.com
-      SMTP_PASS: sdcfstlsmpawnrlnrkkq
-      SMTP_BACKUP: billing@zuperhandy.com
-      FROM_EMAIL: "ZuperHandy <no-reply@zuperhandy.com>"
-      JWT_SECRET: a0c4512cb531914405508ba867133820b79f0a10cb6ba229b2695270ba24463f
-      PUBLIC_FRONTEND_URL: https://invoice.zuperhandy.com
+    env_file:
+      - .env
     expose:
       - "8000"
     depends_on:
@@ -53,12 +43,10 @@ services:
   db:
     image: postgres:15-alpine
     restart: always
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: zuperuser
-      POSTGRES_PASSWORD: zuperpass
-      POSTGRES_DB: zuperbill
     networks:
       - zuper-net
 

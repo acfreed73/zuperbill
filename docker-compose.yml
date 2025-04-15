@@ -12,17 +12,14 @@ services:
       - "8000:8000"
     depends_on:
       - db
-    environment:
-      - DATABASE_URL=postgresql+psycopg2://zuperuser:zuperpass@db:5432/zuperbill
-      - PYTHONPATH=/app
+    env_file:
+      - .env
 
   db:
     image: postgres:15
     restart: always
-    environment:
-      POSTGRES_USER: zuperuser
-      POSTGRES_PASSWORD: zuperpass
-      POSTGRES_DB: zuperbill
+    env_file:
+      - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
