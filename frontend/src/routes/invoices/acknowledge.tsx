@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from '@/services/api';
 import SignatureCanvas from "react-signature-canvas";
 import InvoicePreview from "../../components/InvoicePreview";
+import confetti from 'canvas-confetti';
 
 export default function AcknowledgeInvoice() {
     const { invoiceId } = useParams<{ invoiceId: string }>();
@@ -18,7 +19,39 @@ export default function AcknowledgeInvoice() {
     const [paymentType, setPaymentType] = useState("");
     const [paymentNotes, setPaymentNotes] = useState("");
     const [cleared, setCleared] = useState(false);
+    // const sounds = ['thunder.wav', 'dissappointing.wav','boo.wav'];
+    const sounds = ['thunder.wav'];
+    const sound = new Audio(`/sounds/${sounds[Math.floor(Math.random() * sounds.length)]}`);
+    
     const navigate = useNavigate();
+
+    const launchBooConfetti = () => {
+        for (let i = 0; i < 30; i++) {
+            const boo = document.createElement('div');
+            boo.innerText = ['👻', '💀', 'boo!'][Math.floor(Math.random() * 3)];
+            boo.style.position = 'fixed';
+            boo.style.left = `${Math.random() * 100}%`;
+            boo.style.top = '-50px';
+            boo.style.fontSize = '24px';
+            boo.style.animation = `fall ${2 + Math.random() * 2}s linear forwards`;
+            boo.style.zIndex = '9999';
+            document.body.appendChild(boo);
+
+            setTimeout(() => boo.remove(), 4000); // Cleanup
+        }
+    };
+    const triggerLightningAndThunder = () => {
+        const cloud = document.createElement('div');
+        cloud.className = 'thundercloud';
+        cloud.textContent = '🌩️';
+        document.body.appendChild(cloud);
+        setTimeout(() => document.body.removeChild(cloud), 2000);
+        const delay = 300 + Math.random() * 700;
+        setTimeout(() => {
+            const audio = sound
+            audio.play();
+        }, delay);
+    };
 
     useEffect(() => {
         api.get(`/invoices/${invoiceId}`).then(res => {
@@ -46,7 +79,9 @@ export default function AcknowledgeInvoice() {
             .catch(console.error);
     }, [selectedTheme]);
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
         const canvasEmpty = sigRef.current?.isEmpty();
 
         if (!agreed) {
@@ -73,7 +108,16 @@ export default function AcknowledgeInvoice() {
             signed_at: new Date().toISOString(),
             testimonial,
         };
-
+        if (paymentStatus === "paid") {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        } else {
+            triggerLightningAndThunder();
+            
+        }
         if (!canvasEmpty && !cleared) {
             payload.signature_base64 = sigRef.current?.toDataURL("image/png");
         }
