@@ -20,6 +20,7 @@ from app.routes import (
     auth,
     reports,
 )
+from app.routes import backup
 from app.utils.auth import verify_token
 from app.db_init import create_db, seed_admin
 
@@ -75,6 +76,7 @@ app.include_router(testimonials.router, prefix="/ai")
 app.include_router(line_items.router)
 app.include_router(public.router)
 app.include_router(reports.router, prefix="/reports", tags=["Reports"])
+app.include_router(backup.router, prefix="/admin", tags=["Backup"]) 
 
 # Error handling
 @app.exception_handler(RequestValidationError)

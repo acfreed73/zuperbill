@@ -17,12 +17,12 @@ class Customer(Base):
     zipcode = Column(String, nullable=True)
     referral_source = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
-    invoices = relationship("Invoice", back_populates="customer")
+    invoices = relationship("Invoice", back_populates="customer", passive_deletes=True)
 class Invoice(Base):
     __tablename__ = "invoices"
 
     id = Column(Integer, primary_key=True, index=True)
-    customer_id = Column(Integer, ForeignKey("customers.id"))
+    customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"))
     date = Column(Date, default=date.today)
     total = Column(Float)
     discount = Column(Float, nullable=True)
@@ -49,7 +49,7 @@ class Invoice(Base):
     otp_code = Column(String, nullable=True)
     otp_expiry = Column(DateTime, nullable=True)
 
-    customer = relationship("Customer", back_populates="invoices")
+    customer = relationship("Customer", back_populates="invoices", passive_deletes=True)
     items = relationship("LineItem", back_populates="invoice")
     public_tokens = relationship("PublicToken", back_populates="invoice", cascade="all, delete-orphan")
     tech = relationship("User", back_populates="invoices")
@@ -65,12 +65,12 @@ class LineItem(Base):
     __tablename__ = "line_items"
 
     id = Column(Integer, primary_key=True, index=True)
-    invoice_id = Column(Integer, ForeignKey("invoices.id"))
+    invoice_id = Column(Integer, ForeignKey("invoices.id", ondelete="CASCADE"))
     description = Column(String)
     quantity = Column(Integer)
     unit_price = Column(Float)
 
-    invoice = relationship("Invoice", back_populates="items")
+    invoice = relationship("Invoice", back_populates="items", passive_deletes=True)
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)

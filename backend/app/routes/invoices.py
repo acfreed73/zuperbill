@@ -261,6 +261,7 @@ def delete_invoice(invoice_id: int, db: Session = Depends(get_db), token: dict =
         raise HTTPException(status_code=404, detail="Invoice not found")
     db.delete(invoice)
     db.commit()
+    db.expire_all()
     return None
 @router.post("/{invoice_id}/resend", status_code=200)
 def resend_invoice(invoice_id: int, db: Session = Depends(get_db), token: dict = Depends(verify_token)):

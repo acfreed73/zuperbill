@@ -59,6 +59,7 @@ export default function App() {
           <Link to="/" className="text-blue-600 hover:underline">Home</Link>
           <Link to="/customers" className="text-blue-600 hover:underline">Customers</Link>
           <Link to="/reports/tech-summary" className="text-blue-600 hover:underline">Tech Summary Report</Link>
+          <Link to="/admin/backup" className="text-blue-600 hover:underline">Backup/Restore</Link>
           <button
             onClick={handleLogout}
             className="ml-auto bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"

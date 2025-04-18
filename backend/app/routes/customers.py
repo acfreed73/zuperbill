@@ -77,12 +77,23 @@ def update_customer(customer_id: int, updated: CustomerCreate, db: Session = Dep
     return customer
 
 
+# @router.delete("/{customer_id}")
+# def delete_customer(customer_id: int, db: Session = Depends(get_db), _: models.User = Depends(verify_token) ):
+#     customer = db.query(models.Customer).filter(models.Customer.id == customer_id).first()
+#     if not customer:
+#         raise HTTPException(status_code=404, detail="Customer not found")
+
+#     db.delete(customer)
+#     db.commit()
+#     db.expire_all()
+#     return {"detail": "Customer deleted"}
 @router.delete("/{customer_id}")
-def delete_customer(customer_id: int, db: Session = Depends(get_db), _: models.User = Depends(verify_token) ):
-    customer = db.query(models.Customer).filter(models.Customer.id == customer_id).first()
+def delete_customer(customer_id: int, db: Session = Depends(get_db), _: models.User = Depends(verify_token)):
+    customer = db.get(models.Customer, customer_id)
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
     db.delete(customer)
     db.commit()
-    return {"detail": "Customer deleted"}
+    db.expire_all()  # Optional to clear cache
+    return {"detail": f"Customer {customer_id} and related invoices/line-items deleted."}

@@ -20,6 +20,8 @@ import AcknowledgeInvoice from "./src/routes/invoices/acknowledge";
 import Login from "./src/routes/login";
 import PublicInvoice from "./src/routes/public/invoice";
 import TechSummaryReport from "@/components/TechSummaryReport";
+import BackupPage from "./src/routes/admin/backup"; 
+
 
 const router = createBrowserRouter([
     {
@@ -38,7 +40,8 @@ const router = createBrowserRouter([
                     { path: "edit-invoice/:invoiceId", element: <EditInvoice /> },
                     { path: "create-invoice/:customerId", element: <CreateInvoice /> },
                     { path: "invoices/:invoiceId/acknowledge", element: <AcknowledgeInvoice /> },
-                    { path: "reports/tech-summary", element: <TechSummaryReport /> }
+                    { path: "reports/tech-summary", element: <TechSummaryReport /> },
+                    { path: "admin/backup", element: <BackupPage /> },
                 ],
             },
         ],
