@@ -74,6 +74,7 @@ export default function EditInvoiceRoute() {
                 payment_type: invoice.payment_type,
                 discount: invoice.discount,
                 tax: invoice.tax,
+                testimonial: invoice.testimonial,
                 tech_id: invoice.tech_id,
                 is_active: invoice.is_active,
                 items: items,
@@ -165,7 +166,15 @@ export default function EditInvoiceRoute() {
                         placeholder="Tech ID"
                     />
                 </div>
-
+                <div>
+                    <label>Testimonial</label>
+                    <textarea 
+                        name="testimonial" 
+                        value={invoice.testimonial || ""} 
+                        onChange={(e) => setInvoice({ ...invoice, testimonial: e.target.value })} 
+                        className="w-full border p-2 rounded" 
+                    />
+                </div>
                 <div className="flex gap-4">
                     <div>
                         <label className="block mb-1">Discount ($)</label>
