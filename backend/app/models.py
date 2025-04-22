@@ -33,13 +33,20 @@ class Invoice(Base):
     notes = Column(Text, nullable=True)
     payment_type = Column(String, nullable=True)
     paid_at = Column(DateTime, nullable=True)
-    invoice_number = Column(String, unique=True, nullable=False)
+    number = Column(String, unique=True, nullable=False)
 
     signed_at = Column(DateTime, nullable=True)
     accepted = Column(Boolean, default=False)
     signature_base64 = Column(Text, nullable=True)
+
+    estimate_signed_at = Column(DateTime, nullable=True)
+    estimate_accepted = Column(String, nullable=True)
+    estimate_signature_base64 = Column(Text, nullable=True)
+
     testimonial = Column(Text, nullable=True)
+
     is_active = Column(Boolean, default=True)
+    is_estimate = Column(Boolean, default=False)
 
     uuid_token = Column(String, unique=True, index=True, nullable=True)
     token_expiry = Column(DateTime, nullable=True)
@@ -50,7 +57,7 @@ class Invoice(Base):
     otp_expiry = Column(DateTime, nullable=True)
 
     customer = relationship("Customer", back_populates="invoices", passive_deletes=True)
-    items = relationship("LineItem", back_populates="invoice")
+    items = relationship("LineItem", back_populates="invoice", cascade="all, delete-orphan")
     public_tokens = relationship("PublicToken", back_populates="invoice", cascade="all, delete-orphan")
     tech = relationship("User", back_populates="invoices")
 

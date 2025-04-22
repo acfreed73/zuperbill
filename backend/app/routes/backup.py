@@ -81,7 +81,7 @@ async def upload_backup(file: UploadFile = File(...)):
             continue  # skip if no customer
 
         existing = db.query(Invoice).filter(
-            Invoice.invoice_number == inv["invoice_number"],
+            Invoice.number == inv["number"],
             Invoice.customer_id == mapped_customer_id
         ).first()
 
@@ -90,7 +90,7 @@ async def upload_backup(file: UploadFile = File(...)):
         else:
             new_inv = Invoice(
                 customer_id=mapped_customer_id,
-                invoice_number=inv["invoice_number"],
+                number=inv["number"],
                 date=inv.get("date"),
                 due_date=inv.get("due_date"),
                 status=inv.get("status", "unpaid"),

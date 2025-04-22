@@ -2,7 +2,7 @@
 from weasyprint import HTML
 from pathlib import Path
 
-def generate_invoice_pdf_from_html(invoice_data: dict, signature_base64: str = "", signed_at: str = "", accepted: bool = False):
+def generate_invoice_pdf_from_html(invoice_data: dict, signature_base64: str = "", signed_at: str = "", accepted: bool = False, doc_type: str = "Invoice"):
     template_path = Path(__file__).parent / "templates"
     logo_path = str(template_path / "zuper_blue.png")
     paid_stamp_path = str(template_path / "paid-stamp.png")
@@ -112,7 +112,7 @@ def generate_invoice_pdf_from_html(invoice_data: dict, signature_base64: str = "
 
         <div class="invoice-meta">
             <div class="meta-left">
-                <strong>Invoice #:</strong> {invoice_data["invoice_number"]}<br />
+                <strong>{doc_type} #:</strong> {invoice_data["number"]}<br />
                 <strong>Date:</strong> {invoice_data["date"].strftime("%-m/%-d/%Y")}<br />
                 <strong>Status:</strong> {invoice_data["status"]}<br />
                 <strong>Payment Type:</strong> {invoice_data.get("payment_type", "N/A")}
@@ -151,9 +151,9 @@ def generate_invoice_pdf_from_html(invoice_data: dict, signature_base64: str = "
             <strong>Customer Signature:</strong><br />
             {f'''
             <img src="{signature_base64}" style="height:80px;" /><br />
-            <em>Signed and accepted on {signed_at}</em><br />
+            <em>Signed and accepted on {signed_at} UTC</em><br />
             <span style="font-size: 11px; color: #555;">
-                By signing, you acknowledge work completion and accept our terms.
+                {"By signing, you accept the proposed estimate and agree to our terms." if doc_type == "Estimate" else "By signing, you acknowledge work completion and accept our terms."}
                 <br />
                 View terms: <a href="https://zuperhandy.com/terms.html">zuperhandy.com/terms.html</a>
             </span>

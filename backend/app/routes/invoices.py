@@ -1,18 +1,19 @@
 # backend/app/routes/invoices.py
 from datetime import datetime, date, timedelta
-import random
 import uuid
 from typing import Optional
 from app.utils.auth import verify_token
+from app.utils.invoice import generate_invoice_number, generate_estimate_number
 from fastapi import APIRouter, Depends, HTTPException, Query, status, Body
 from fastapi.responses import StreamingResponse
 from app.pdf import generate_invoice_pdf_from_html
 from app.utils.email import send_invoice_email
-from sqlalchemy import func
+from sqlalchemy import desc, asc
 from sqlalchemy.orm import Session
 from app import models
 from schemas.invoices import InvoiceCreate, InvoiceOut,  InvoiceUpdate
 from app.utils.email import send_email
+from app.utils.tokens import get_or_create_public_token
 
 from app.database import get_db
 
@@ -31,15 +32,9 @@ def create_invoice(invoice: InvoiceCreate, db: Session = Depends(get_db), token:
     tax = invoice.tax or 0.0
     final_total = (subtotal - discount) * (1 + tax / 100)
 
-    # Generate invoice number like INV-20250401-001
-    today = date.today()
-    today_str = today.strftime("%Y%m%d")
+    # Generate invoice number like {INV,EST}-YYYYMMDD-001
+    number = generate_invoice_number(db) if not invoice.is_estimate else generate_estimate_number(db)
 
-    daily_count = db.query(func.count(models.Invoice.id)).filter(
-        func.date(models.Invoice.date) == today
-    ).scalar() or 0
-
-    invoice_number = f"INV-{today_str}-{str(daily_count + 1).zfill(3)}"
 
     db_invoice = models.Invoice(
         customer_id=invoice.customer_id,
@@ -51,10 +46,11 @@ def create_invoice(invoice: InvoiceCreate, db: Session = Depends(get_db), token:
         due_date=invoice.due_date,
         notes=invoice.notes,
         payment_type=invoice.payment_type,
-        date=today,
-        invoice_number=invoice_number,  # Make sure your model and schema support this field
+        date=date.today(),
+        number=number,  # Make sure your model and schema support this field
         testimonial=invoice.testimonial,
-        tech_id=invoice.tech_id
+        tech_id=invoice.tech_id,
+        is_estimate=invoice.is_estimate
     )
     print(f"Invoice: {db_invoice}")
 
@@ -69,9 +65,7 @@ def create_invoice(invoice: InvoiceCreate, db: Session = Depends(get_db), token:
     db.commit()
     db.refresh(db_invoice)
     return db_invoice
-from fastapi import Query
-from sqlalchemy import desc, asc
-from datetime import datetime, date
+
 
 @router.get("/", response_model=list[InvoiceOut])
 def list_invoices(
@@ -177,7 +171,7 @@ def update_invoice(invoice_id: int, invoice_update: InvoiceUpdate, db: Session =
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     print(f"invoice: {invoice}")
     if not invoice:
-        raise HTTPException(status_code=404, detail="Invoice not found")
+        raise HTTPException(status_code=404, detail="Invoice or Estimate not found")
 
     updates = invoice_update.dict(exclude_unset=True)
     
@@ -197,9 +191,8 @@ def update_invoice(invoice_id: int, invoice_update: InvoiceUpdate, db: Session =
 @router.put("/{invoice_id}", response_model=InvoiceOut)
 def replace_invoice(invoice_id: int, updated_invoice: InvoiceCreate, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
-    print(f"Invoice: {invoice}")
     if not invoice:
-        raise HTTPException(status_code=404, detail="Invoice not found")
+        raise HTTPException(status_code=404, detail="Invoice or Estimate not found")
 
     # Update basic fields
     invoice.customer_id = updated_invoice.customer_id
@@ -212,6 +205,7 @@ def replace_invoice(invoice_id: int, updated_invoice: InvoiceCreate, db: Session
     invoice.testimonial = updated_invoice.testimonial
     invoice.tech_id = updated_invoice.tech_id
     invoice.media_folder_url = updated_invoice.media_folder_url
+    invoice.is_active = updated_invoice.is_active
 
     # Recalculate totals
     subtotal = sum(item.quantity * item.unit_price for item in updated_invoice.items)
@@ -238,7 +232,7 @@ def replace_invoice(invoice_id: int, updated_invoice: InvoiceCreate, db: Session
 def generate_invoice_token(invoice_id: int, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     if not invoice:
-        raise HTTPException(status_code=404, detail="Invoice not found")
+        raise HTTPException(status_code=404, detail="Invoice or Estimate not found")
 
     uuid_token = str(uuid.uuid4())
 
@@ -258,7 +252,7 @@ def generate_invoice_token(invoice_id: int, db: Session = Depends(get_db), token
 def delete_invoice(invoice_id: int, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     if not invoice:
-        raise HTTPException(status_code=404, detail="Invoice not found")
+        raise HTTPException(status_code=404, detail="Invoice or Estimate not found")
     db.delete(invoice)
     db.commit()
     db.expire_all()
@@ -266,24 +260,94 @@ def delete_invoice(invoice_id: int, db: Session = Depends(get_db), token: dict =
 @router.post("/{invoice_id}/resend", status_code=200)
 def resend_invoice(invoice_id: int, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+
     if not invoice:
-        raise HTTPException(status_code=404, detail="Invoice not found")
+        raise HTTPException(status_code=404, detail="Invoice or Estimate not found")
+
+    doc_type = "Invoice" if not invoice.is_estimate else "Estimate"
 
     invoice_data = InvoiceOut.from_orm(invoice).dict()
 
+    if invoice.is_estimate:
+        signature_base64 = invoice.estimate_signature_base64 or ""
+        signed_at = invoice.estimate_signed_at.strftime("%m/%d/%Y %H:%M") if invoice.estimate_signed_at else ""
+        accepted = invoice.estimate_accepted
+    else:
+        signature_base64 = invoice.signature_base64 or ""
+        signed_at = invoice.signed_at.strftime("%m/%d/%Y %H:%M") if invoice.signed_at else ""
+        accepted = invoice.accepted
+
     pdf_bytes = generate_invoice_pdf_from_html(
         invoice_data,
-        signature_base64=invoice.signature_base64 or "",
-        signed_at=invoice.signed_at.strftime("%m/%d/%Y %H:%M") if invoice.signed_at else "",
-        accepted=invoice.accepted
+        signature_base64=signature_base64,
+        signed_at=signed_at,
+        accepted=accepted,
+        doc_type=doc_type,  # <-- make sure pdf.py supports doc_type (we fixed it above)
     )
 
     send_invoice_email(
         to_email=invoice.customer.email,
-        subject=f"Invoice #{invoice.invoice_number}",
-        body=f"Here is your invoice #{invoice.invoice_number} for your records.",
+        subject=f"{doc_type} #{invoice.number}",
+        body=f"Here is your signed {doc_type.lower()} #{invoice.number} for your records.",
         attachment=io.BytesIO(pdf_bytes),
-        filename=f"invoice_{invoice.invoice_number}.pdf"
+        filename=f"{doc_type}_{invoice.number}.pdf"
     )
 
-    return {"message": "Invoice resent successfully"}
+    return {"message": f"{doc_type} resent successfully"}
+@router.post("/{invoice_id}/clone", response_model=InvoiceOut)
+def clone_invoice(invoice_id: int, is_estimate: Optional[bool] = None, db: Session = Depends(get_db), token: dict = Depends(verify_token)):
+    invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    # Archive the original
+    invoice.is_active = False
+    db.commit()
+
+    # Create new invoice (basic fields)
+    new_invoice = models.Invoice(
+        customer_id=invoice.customer_id,
+        due_date=invoice.due_date,
+        notes=invoice.notes,
+        discount=invoice.discount,
+        tax=invoice.tax,
+        status="unpaid",
+        payment_type=None,
+        testimonial=None,
+        media_folder_url=invoice.media_folder_url,
+        tech_id=invoice.tech_id,
+        is_estimate=is_estimate if is_estimate is not None else invoice.is_estimate,
+    )
+
+    # Generate new number
+    if new_invoice.is_estimate:
+        new_invoice.number = generate_estimate_number(db)
+    else:
+        new_invoice.number = generate_invoice_number(db)
+
+    # ✅ Add and commit now to get ID
+    db.add(new_invoice)
+    db.commit()
+    db.refresh(new_invoice)
+
+    # ✅ Get token string
+    token_str = get_or_create_public_token(new_invoice.id, db)
+
+    # ✅ Assign manually
+    new_invoice.uuid_token = token_str
+    new_invoice.token_expiry = datetime.utcnow() + timedelta(days=3)
+
+    # Copy line items
+    for item in invoice.items:
+        db_item = models.LineItem(
+            invoice_id=new_invoice.id,
+            description=item.description,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+        )
+        db.add(db_item)    
+    
+    db.commit()
+    db.refresh(new_invoice)
+
+    return new_invoice

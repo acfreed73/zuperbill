@@ -26,10 +26,19 @@ def acknowledge_invoice(
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
-    if ack.signature_base64:
-        invoice.signature_base64 = ack.signature_base64
-
-    invoice.accepted = ack.accepted or False
+    if invoice.is_estimate:
+        if ack.estimate_signature_base64:
+            invoice.estimate_signature_base64 = ack.estimate_signature_base64
+        invoice.estimate_accepted = ack.estimate_accepted or False
+        invoice.estimate_signed_at = ack.estimate_signed_at or datetime.utcnow()
+    else:
+        if ack.signature_base64:
+            invoice.signature_base64 = ack.signature_base64
+        invoice.accepted = ack.accepted or False
+        if ack.signed_at:
+            invoice.signed_at = ack.signed_at
+        else:
+            invoice.signed_at = datetime.utcnow()
 
     if ack.status == "paid" and not invoice.paid_at:
         invoice.paid_at = datetime.utcnow()
@@ -45,45 +54,73 @@ def acknowledge_invoice(
     db.refresh(invoice)
 
     return invoice
+
 @router.post("/invoices/{invoice_id}/email", response_model=InvoiceOut)
 def email_invoice(
     invoice_id: int,
     db: Session = Depends(get_db),
     token: dict = Depends(verify_token)
 ):
+    print("ack email")
     invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
     if not invoice:
         raise HTTPException(status_code=404, detail="Invoice not found")
 
-    if not invoice.accepted or not invoice.signature_base64 or not invoice.signed_at:
-        raise HTTPException(status_code=400, detail="Invoice not fully acknowledged yet")
+    if invoice.is_estimate:
+        signature = invoice.estimate_signature_base64
+        signed_at = invoice.estimate_signed_at.strftime("%m/%d/%Y %H:%M") if invoice.estimate_signed_at else None
+        accepted = invoice.estimate_accepted
+        doc_type = "Estimate"
+    else:
+        signature = invoice.signature_base64
+        signed_at = invoice.signed_at.strftime("%m/%d/%Y %H:%M") if invoice.signed_at else None
+        accepted = invoice.accepted
+        doc_type = "Invoice"
 
     public_token = get_or_create_public_token(invoice.id, db, expires_in_hours=None)
     public_url = f"{BASE_PUBLIC_URL}/public/invoice/{public_token}"
-
     invoice_data = InvoiceOut.from_orm(invoice).dict()
+
     pdf_bytes = generate_invoice_pdf_from_html(
         invoice_data,
-        signature_base64=invoice.signature_base64,
-        signed_at=invoice.signed_at.strftime("%m/%d/%Y %H:%M"),
-        accepted=invoice.accepted
+        signature_base64=signature,
+        signed_at=signed_at,
+        accepted=accepted,
     )
 
-    body = f"""
-    Invoice #{invoice.invoice_number} has been signed and accepted on {invoice.signed_at.strftime('%m/%d/%Y')}.
 
-    You can view or download your invoice anytime at:
-    {public_url}
+    if accepted and signature:
+        # ✅ Already signed and accepted
+        body = f"""
+{doc_type} #{invoice.number} has been signed and accepted on {signed_at} UTC.
 
-    This is your copy for your records.
-    """
+You can view or download your {doc_type.lower()} anytime at:
+{public_url}
+
+This is your copy for your records.
+"""
+        subject = f"{doc_type} #{invoice.number} - Signed Copy"
+        filename = f"{doc_type.lower()}_{invoice.number}_signed.pdf"
+    else:
+        # 🚨 Not signed yet - request signature
+        body = f"""
+You have a new {doc_type.lower()} #{invoice.number} ready for review.
+
+Please review, accept, and sign it here:
+{public_url}
+
+Thank you,
+ZuperHandy Team
+"""
+        subject = f"Action Required: {doc_type} #{invoice.number} - Please Accept and Sign"
+        filename = f"{doc_type.lower()}_{invoice.number}.pdf"
 
     send_invoice_email(
         to_email=invoice.customer.email,
-        subject=f"Invoice #{invoice.invoice_number} - Signed",
+        subject=subject,
         body=body,
         attachment=io.BytesIO(pdf_bytes),
-        filename=f"invoice_{invoice.invoice_number}_signed.pdf"
+        filename=filename,
     )
 
     return invoice

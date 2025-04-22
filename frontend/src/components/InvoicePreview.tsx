@@ -20,11 +20,9 @@ export default function InvoicePreview({
         ? new Date(invoice.paid_at).toLocaleDateString()
         : null;
 
-    const signature = invoice.signature_base64 || signatureDataUrl;
-    const isAccepted = invoice.accepted ?? accepted ?? false;
-    const signedTime = invoice.signed_at
-        ? new Date(invoice.signed_at).toLocaleString()
-        : signedAt || "";
+    const signature =  invoice.signature_base64 || invoice.estimate_signature_base64 || "";
+    const signedTime = signedAt || invoice.signed_at || invoice.estimate_signed_at || "";
+    const isAccepted = accepted || invoice.accepted || invoice.estimate_accepted || "";
 
     const [testimonial, setTestimonial] = useState(
         invoice.testimonial || propTestimonial || ""
@@ -75,8 +73,8 @@ export default function InvoicePreview({
             <div className="flex justify-between mb-4 relative z-10">
                 <div className="w-1/2">
                     <p>
-                        <strong>Invoice #: </strong>
-                        {invoice.invoice_number}
+                        <strong>{invoice.is_estimate ? "Estimate" : "Invoice"} #: </strong>
+                        {invoice.number}
                     </p>
                     <p>
                         <strong>Date: </strong>
@@ -180,7 +178,7 @@ export default function InvoicePreview({
                             className="max-w-xs max-h-40 border"
                         />
                         <p className="text-xs italic mt-1">
-                            Signed and accepted on {signedTime || "N/A"}.
+                            Signed and accepted on {signedTime + " UTC" || "N/A"}.
                         </p>
                         <p className="text-xs text-gray-600">
                             (Customer acknowledged work completion and agreed to terms.)

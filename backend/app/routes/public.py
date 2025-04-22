@@ -4,11 +4,11 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
-from schemas.invoices import InvoiceOut, OtpVerifyRequest
+from schemas.invoices import InvoiceOut, OtpVerifyRequest, InvoiceAcknowledgment
 from datetime import datetime
 from typing import List, Optional
 from datetime import datetime, date, timedelta
-from app.utils.email import send_email
+from app.utils.email import send_email, send_public_invoice_email
 router = APIRouter()
 
 
@@ -20,10 +20,45 @@ def verify_public_token(token: str, db: Session) -> Optional[int]:
         return None
     return record.invoice_id
 
+@router.post("/public/invoice/{token}/acknowledge")
+def public_acknowledge_invoice(token: str, ack: InvoiceAcknowledgment, db: Session = Depends(get_db)):
+    invoice_id = verify_public_token(token, db)
+    if not invoice_id:
+        raise HTTPException(status_code=404, detail="Invalid or expired token")
+
+    invoice = db.query(models.Invoice).filter(models.Invoice.id == invoice_id).first()
+    if not invoice:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+
+    if invoice.is_estimate:
+        if ack.estimate_signature_base64:
+            invoice.estimate_signature_base64 = ack.estimate_signature_base64
+        invoice.estimate_accepted = ack.estimate_accepted or False
+        invoice.estimate_signed_at = ack.estimate_signed_at or datetime.utcnow()
+    else:
+        if ack.signature_base64:
+            invoice.signature_base64 = ack.signature_base64
+        invoice.accepted = ack.accepted or False
+        invoice.signed_at = ack.signed_at or datetime.utcnow()
+
+    if ack.testimonial:
+        invoice.testimonial = ack.testimonial
+
+    if ack.notes:
+        invoice.notes = ack.notes
+
+    db.commit()
+    db.refresh(invoice)
+
+    # ✉️ Send Email
+    send_public_invoice_email(invoice)
+
+    return {"message": "Acknowledged and emailed successfully"}
 
 @router.get("/public/invoice/{token}", response_model=InvoiceOut)
 def view_invoice_by_token(token: str, db: Session = Depends(get_db)):
     invoice_id = verify_public_token(token, db)
+    print(f"invoice_id: {invoice_id}")
     if not invoice_id:
         raise HTTPException(status_code=404, detail="Invalid or expired token")
 

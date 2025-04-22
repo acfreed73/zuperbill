@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import uuid
+from app import models
 from sqlalchemy.orm import Session
 from app.models import PublicToken
 
@@ -38,4 +39,3 @@ def get_or_create_public_token(invoice_id: int, db: Session, expires_in_hours: i
     db.commit()
     db.refresh(new_token)
     return new_token.token
-

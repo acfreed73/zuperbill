@@ -1,22 +1,25 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import api from "@/services/api";
+// import { getActiveResourcesInfo } from "process";
 
 interface Invoice {
     id: number;
-    invoice_number: string;
+    number: string;
     date: string;
     status: string;
     final_total: number;
     accepted?: boolean;
     user_name?: string;
+    is_estimate?: boolean;
+    is_active?: boolean;
 }
 
 export default function InvoiceList({ customerId }: { customerId?: number }) {
     const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [showActiveOnly, setShowActiveOnly] = useState(true);
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-
     const techId = searchParams.get("tech_id");
     const status = searchParams.get("status");
     const period = searchParams.get("period");
@@ -83,7 +86,7 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
     return (
         <div className="mt-4">
             <div className="flex justify-between items-center mb-2">
-                <h2 className="text-xl font-semibold">Invoices</h2>
+                <h2 className="text-xl font-semibold">Invoices/Estimates</h2>
             </div>
 
             {invoices.length === 0 ? (
@@ -93,8 +96,19 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
                     <table className="w-full border border-gray-300 text-sm">
                         <thead className="bg-gray-100">
                             <tr>
-                                <th className="p-2 text-left cursor-pointer" onClick={() => handleSort("invoice_number")}>
-                                    Invoice #
+                                <th className="p-2 text-left cursor-pointer" onClick={() => handleSort("number")}>
+                                    <div className="flex items-center space-x-2">
+                                        <span>#</span>
+                                        <label className="flex items-center space-x-1">
+                                            <input
+                                                type="checkbox"
+                                                checked={showActiveOnly}
+                                                onChange={(e) => setShowActiveOnly(e.target.checked)}
+                                                className="h-4 w-4"
+                                            />
+                                            <span className="text-xs">Active</span>
+                                        </label>
+                                    </div>
                                 </th>
                                 <th className="p-2 text-left cursor-pointer" onClick={() => handleSort("date")}>
                                     Date
@@ -110,9 +124,11 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
                             </tr>
                         </thead>
                         <tbody>
-                            {invoices.map((inv) => (
+                            {invoices
+                            .filter((inv) => !showActiveOnly || inv.is_active)
+                            .map((inv) => (
                                 <tr key={inv.id} className={`border-t ${inv.status === "paid" ? "bg-green-100" : ""}`}>
-                                    <td className="p-2">{inv.invoice_number}</td>
+                                    <td className="p-2">{inv.number}</td>
                                     <td className="p-2">
                                         {new Date(inv.date).toLocaleDateString("en-US", {
                                             year: "numeric",
@@ -121,7 +137,7 @@ export default function InvoiceList({ customerId }: { customerId?: number }) {
                                         })}
                                     </td>
                                     <td className="p-2">{inv.status}</td>
-                                    <td className="p-2">${inv.final_total.toFixed(2)}</td>
+                                    <td className="p-2">${inv.final_total != null ? inv.final_total.toFixed(2) : "0.00"}</td>
                                     <td className="p-2 space-x-2">
                                         <Link to={`/edit-invoice/${inv.id}`} className="text-blue-600">Edit</Link>
                                         <Link to={`/invoices/${inv.id}/acknowledge`} className="text-green-600">Ack</Link>

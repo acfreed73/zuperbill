@@ -94,20 +94,29 @@ export default function AcknowledgeInvoice() {
         }
 
         if (invoice?.accepted && !canvasEmpty && cleared) {
-            alert("Invoice already signed; you cannot change the original signature.");
+            alert("Already signed; you cannot change the original signature.");
             return;
         }
 
         setSubmitting(true);
 
         const payload: any = {
-            accepted: agreed,
+            // accepted: agreed,
             status: paymentStatus,
             payment_type: paymentType,
             notes: paymentNotes,
-            signed_at: new Date().toISOString(),
+            // signed_at: new Date().toISOString(),
             testimonial,
         };
+
+        if (invoice.is_estimate) {
+            payload.estimate_accepted = agreed;
+            payload.estimate_signed_at = new Date().toISOString();
+        } else {
+            payload.accepted = agreed;
+            payload.signed_at = new Date().toISOString();
+        }
+
         if (paymentStatus === "paid") {
             confetti({
                 particleCount: 100,
@@ -119,7 +128,11 @@ export default function AcknowledgeInvoice() {
             
         }
         if (!canvasEmpty && !cleared) {
-            payload.signature_base64 = sigRef.current?.toDataURL("image/png");
+            if (invoice.is_estimate) {
+                payload.estimate_signature_base64 = sigRef.current?.toDataURL("image/png");
+            } else {
+                payload.signature_base64 = sigRef.current?.toDataURL("image/png");
+            }
         }
 
         try {
@@ -172,7 +185,7 @@ export default function AcknowledgeInvoice() {
                         checked={agreed}
                         onChange={() => setAgreed(!agreed)}
                     />
-                    I agree to the terms and acknowledge work completion.
+                    {invoice.is_estimate ? "I accept the terms and authorize the work described in this Estimate." : "I agree to the terms and acknowledge work completion."}
                 </label>
             </div>
             {/* Testimonial */}
@@ -242,7 +255,7 @@ export default function AcknowledgeInvoice() {
                         onClick={async () => {
                             try {
                             await api.post(`/invoices/${invoiceId}/email`);
-                            alert("Invoice emailed successfully.");
+                            alert("Emailed successfully.");
                             } catch (err: any) {
                             alert("Failed to send invoice.");
                             } }} 

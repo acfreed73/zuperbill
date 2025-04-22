@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "@/services/api";
 import InvoicePreview from "@/components/InvoicePreview";
+import SignatureCanvas from "react-signature-canvas";
 
 export default function PublicInvoiceView() {
     const { token } = useParams<{ token: string }>();
@@ -14,6 +15,13 @@ export default function PublicInvoiceView() {
     const [canResend, setCanResend] = useState(false);
     const [seconds, setSeconds] = useState(120);
     const [verifying, setVerifying] = useState(false);
+
+    // Signature related
+    const sigRef = useRef<SignatureCanvas>(null);
+    const [agreed, setAgreed] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [signed, setSigned] = useState(false);
+    const [cleared, setCleared] = useState(false);
 
     useEffect(() => {
         if (token) {
@@ -69,6 +77,53 @@ export default function PublicInvoiceView() {
         return `${m}:${sec}`;
     };
 
+    const handleClearSignature = () => {
+        sigRef.current?.clear();
+        setSigned(false);
+        setCleared(true);
+    };
+
+    const handleSubmit = async () => {
+        if (!agreed) {
+            alert("You must accept the terms.");
+            return;
+        }
+        if (sigRef.current?.isEmpty() && !(invoice.is_estimate ? invoice.estimate_signature_base64 : invoice.signature_base64)) {
+            alert("You must provide a signature.");
+            return;
+        }
+
+        setSubmitting(true);
+
+        const payload: any = {};
+
+        if (invoice.is_estimate) {
+            payload.estimate_accepted = agreed;
+            payload.estimate_signed_at = new Date().toISOString();
+        } else {
+            payload.accepted = agreed;
+            payload.signed_at = new Date().toISOString();
+        }
+
+        if (!sigRef.current?.isEmpty() && !cleared) {
+            if (invoice.is_estimate) {
+                payload.estimate_signature_base64 = sigRef.current?.toDataURL("image/png");
+            } else {
+                payload.signature_base64 = sigRef.current?.toDataURL("image/png");
+            }
+        }
+
+        try {
+            await api.post(`/public/invoice/${token}/acknowledge`, payload);
+            alert("Thank you! Your document has been signed and emailed to you.");
+            window.location.reload();
+        } catch (err: any) {
+            alert(err.response?.data?.detail || "Failed to submit acknowledgment.");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     if (!verified) {
         const progress = ((120 - seconds) / 120) * 100;
 
@@ -115,28 +170,79 @@ export default function PublicInvoiceView() {
     }
 
     if (loading) return <p className="p-4">Loading...</p>;
-    if (!invoice) return <p className="p-4 text-red-600">Invoice not found.</p>;
+    if (!invoice) return <p className="p-4 text-red-600">Document not found.</p>;
 
     return (
         <div className="p-4 max-w-5xl mx-auto">
             <InvoicePreview
                 invoice={invoice}
-                signatureDataUrl={invoice.signature_base64 || ""}
-                signedAt={invoice.signed_at}
-                accepted={invoice.accepted}
+                signatureDataUrl={invoice.is_estimate ? invoice.estimate_signature_base64 : invoice.signature_base64}
+                signedAt={invoice.is_estimate ? invoice.estimate_signed_at : invoice.signed_at}
+                accepted={invoice.is_estimate ? invoice.estimate_accepted : invoice.accepted}
                 testimonial={invoice.testimonial}
             />
-            {invoice.media_folder_url && (
-                <div className="mt-8">
-                    <h3 className="text-lg font-semibold mb-2">Drive Folder</h3>
-                    <a
-                        href={invoice.media_folder_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 underline"
+
+            {!(invoice.is_estimate ? invoice.estimate_accepted : invoice.accepted) ? (
+                <div className="mt-8 p-4 border rounded">
+                    <h3 className="text-lg font-semibold mb-4">
+                        {invoice.is_estimate ? "Accept this Estimate" : "Acknowledge this Invoice"}
+                    </h3>
+
+                    {/* Terms and Conditions */}
+                    <div className="mb-4">
+                        <iframe
+                            src="https://callitweb.com/zacharyfreed/terms.html"
+                            className="w-full h-40 border rounded"
+                            title="Terms"
+                        />
+                        <label className="block mt-2">
+                            <input
+                                type="checkbox"
+                                className="mr-2"
+                                checked={agreed}
+                                onChange={() => setAgreed(!agreed)}
+                            />
+                            {invoice.is_estimate
+                                ? "I accept the terms and authorize the work described in this Estimate."
+                                : "I agree to the terms and acknowledge work completion."}
+                        </label>
+                    </div>
+
+                    {/* Signature Pad */}
+                    <div className="mb-4">
+                        <SignatureCanvas
+                            ref={sigRef}
+                            penColor="black"
+                            canvasProps={{ width: 600, height: 200, className: "border rounded", style: { maxWidth: "100%" } }}
+                            onEnd={() => setSigned(true)}
+                        />
+                        <button onClick={handleClearSignature} className="text-sm mt-2 text-blue-600">
+                            Clear
+                        </button>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                        onClick={handleSubmit}
+                        className="bg-green-600 text-white px-6 py-2 rounded"
+                        disabled={submitting}
                     >
-                        View Folder on Google Drive
-                    </a>
+                        {submitting ? "Submitting..." : invoice.is_estimate ? "Accept Estimate" : "Acknowledge Invoice"}
+                    </button>
+                </div>
+            ):(
+                // ✅ Render confirmation that it has already been signed
+                <div className="mt-8 p-4 border rounded bg-green-50 text-green-800">
+                    <h3 className="text-lg font-semibold mb-2">
+                        {invoice.is_estimate ? "Estimate Accepted" : "Invoice Acknowledged"}
+                    </h3>
+                    <p>
+                        This {invoice.is_estimate ? "estimate" : "invoice"} was{" "}
+                        {invoice.is_estimate ? "accepted" : "acknowledged"} on{" "}
+                        <strong>
+                            {new Date(invoice.is_estimate ? invoice.estimate_signed_at : invoice.signed_at).toLocaleString()} UTC
+                        </strong>.
+                    </p>
                 </div>
             )}
         </div>

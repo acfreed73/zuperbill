@@ -46,7 +46,9 @@ def list_customers(
     for c in customers:
         unpaid_total = db.query(func.coalesce(func.sum(models.Invoice.final_total), 0)).filter(
             models.Invoice.customer_id == c.id,
-            models.Invoice.status != "paid"
+            models.Invoice.status != "paid",
+            models.Invoice.is_estimate == False,
+            models.Invoice.is_active == True
         ).scalar()
 
         result.append({
